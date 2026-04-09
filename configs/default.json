@@ -1,0 +1,81 @@
+{
+  "seed": 42,
+  "device": "cpu",
+
+  "vsa_dim": 512,
+  "max_nodes": 256,
+  "max_attractors": 2048,
+  "max_temporal_motifs": 512,
+  "max_ers_working": 128,
+  "max_ers_episodic": 10000,
+  "max_ers_semantic": 10000,
+  "max_ers_procedural": 5000,
+
+  "grid_size": 8,
+  "grid_vocab": 10,
+  "rel_vocab_size": 64,
+  "node_hidden_dim": 256,
+  "batch_size": 16,
+  "steps": 2000,
+  "lr": 0.0001,
+
+  "lambda_e": 0.90,
+  "lambda_tau": 0.90,
+  "lambda_emo": 0.85,
+  "lr_ff": 0.0001,
+  "lr_fb": 0.0001,
+
+  "tau_c": 0.55,
+  "tau_r": 0.20,
+  "tau_dissolve": 0.25,
+  "phi_max_join": 0.25,
+  "alpha_bind": 0.15,
+  "tau_veto": 0.60,
+  "tau_unsupported": 0.10,
+
+  "spike_thresholds": {
+    "perceptive": 0.30,
+    "compositional": 0.20,
+    "recursive": 0.10,
+    "commit": 0.40
+  },
+
+  "tau_spawn": 0.65,
+  "N_persist": 10,
+  "sigma_spawn": 0.05,
+  "tau_prune": 0.75,
+  "tau_age_prune": 200,
+  "tau_merge": 0.92,
+  "stability_gate_window": 50,
+  "tau_cleanup_conf": 0.45,
+
+  "N_max_relational": 20,
+  "N_max_compositional": 50,
+
+  "LAL_vocab_size": 8192,
+  "D_syntactic": 256,
+  "D_pragmatic": 128,
+
+  "ISL_trigger_uncertainty": 0.55,
+  "alpha_icl": 0.25,
+  "alpha_ers": 0.15,
+  "tau_ers": 0.45,
+  "lambda_ewc": 10.0,
+  "max_online_grad_norm": 0.01,
+
+  "SCR_min_all_families": 5.0,
+  "SCR_target_3_families": 10.0,
+  "CompSplit_gate": 0.75,
+  "sym_floor": 0.70,
+
+  "B_max": 32,
+  "W_max": 4,
+
+  "checkpoint_dir": "artifacts",
+  "log_every": 10,
+  "checkpoint_every": 50,
+  "train_mix": {
+    "arc": 0.6,
+    "graph": 0.4
+  }
+}

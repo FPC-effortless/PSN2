@@ -1,0 +1,1110 @@
+{
+  "project": "PSN-2: Unified Intelligence Architecture (Kaggle-Constrained)",
+  "version": "3.0",
+  "owner": "Ideation Labs",
+  "date": "2026-04-09",
+  "system_constraints": {
+    "gpu_vram": "16GB (T4 or P100)",
+    "ram": "30GB",
+    "session_limit_hours": 9,
+    "disk_persistent": "20GB",
+    "vsa_dim": 512,
+    "max_vsa_dim": 1024,
+    "max_nodes_initial": 256,
+    "max_nodes_cap": 5000,
+    "max_attractors": 10000
+  },
+  "invariants": [
+    "I-16: Language is substrate-native, not downstream",
+    "I-17: Emotion is a shape class, not a global modulator",
+    "I-18: Computation is event-driven by default",
+    "I-19: Inner speech is a cognitive operation, not an output operation",
+    "I-20: Curiosity generates goals, it does not bias search",
+    "I-21: Development is ordered and gated",
+    "I-22: Observed reasoning traces are first-class learning data",
+    "I-23: Temporal patterns are shapes"
+  ],
+  "constants": {
+    "tau_spike_perceptive": "0.30 + 0.10 * budget_fraction_used",
+    "tau_spike_compositional": "0.20 + 0.05 * budget_fraction_used",
+    "tau_spike_recursive": 0.1,
+    "tau_spike_commit": 0.4,
+    "lambda_e_silent": 0.95,
+    "lambda_tau": 0.9,
+    "tau_curio_error": 0.5,
+    "tau_curio_dl": 2.5,
+    "tau_curio_priority": 0.4,
+    "tau_motif": 0.65,
+    "tau_motif_success": 0.75,
+    "tau_motif_savings": 3,
+    "lambda_emo": 0.85,
+    "tau_emo_stable": 3,
+    "tau_social_trust_min": 0.05,
+    "tau_social_trust_suspicious": 0.3,
+    "alpha_icl": 0.25,
+    "alpha_ers": 0.15,
+    "tau_ers": 0.45,
+    "LAL_vocab_size": 65536,
+    "D_syntactic": 512,
+    "D_pragmatic": 256,
+    "ISL_trigger_uncertainty": 0.55,
+    "ISL_budget_fraction": 0.25,
+    "normalization_psn2": 1.98
+  },
+  "loss_family": {
+    "total_components": 26,
+    "components": [
+      {
+        "id": 1,
+        "symbol": "L_error",
+        "weight": 0.12,
+        "description": "Multi-step prediction-error minimization",
+        "stage": "D1+"
+      },
+      {
+        "id": 2,
+        "symbol": "L_bond",
+        "weight": 0.08,
+        "description": "VSA bond accuracy and typed relation supervision",
+        "stage": "D1+"
+      },
+      {
+        "id": 3,
+        "symbol": "L_shape",
+        "weight": 0.08,
+        "description": "Shape stability and dissolution hinge losses",
+        "stage": "D1+"
+      },
+      {
+        "id": 4,
+        "symbol": "L_compact",
+        "weight": 0.12,
+        "description": "Expected description length \u00e2\u20ac\u201d dominant",
+        "stage": "D1+"
+      },
+      {
+        "id": 5,
+        "symbol": "L_refine",
+        "weight": 0.07,
+        "description": "Negative per-pulse stability improvement",
+        "stage": "D2+"
+      },
+      {
+        "id": 6,
+        "symbol": "L_world",
+        "weight": 0.07,
+        "description": "World model MSE and counterfactual accuracy",
+        "stage": "D2+"
+      },
+      {
+        "id": 7,
+        "symbol": "L_verify",
+        "weight": 0.09,
+        "description": "Verifier veto classification + unsupported-claim loss",
+        "stage": "D2+"
+      },
+      {
+        "id": 8,
+        "symbol": "L_calib",
+        "weight": 0.06,
+        "description": "Error calibration vs actual correctness",
+        "stage": "D2+"
+      },
+      {
+        "id": 9,
+        "symbol": "L_transfer",
+        "weight": 0.07,
+        "description": "Efficiency delta with vs without motifs",
+        "stage": "D5+"
+      },
+      {
+        "id": 10,
+        "symbol": "L_render",
+        "weight": 0.03,
+        "description": "Surface generation from committed state",
+        "stage": "D4+"
+      },
+      {
+        "id": 11,
+        "symbol": "L_vsa",
+        "weight": 0.06,
+        "description": "VSA binding recovery and cleanup accuracy",
+        "stage": "D1+"
+      },
+      {
+        "id": 12,
+        "symbol": "L_mpf",
+        "weight": 0.04,
+        "description": "Phi low on solved tasks",
+        "stage": "D1+"
+      },
+      {
+        "id": 13,
+        "symbol": "L_attractor",
+        "weight": 0.03,
+        "description": "MPF basins well-separated",
+        "stage": "D1+"
+      },
+      {
+        "id": 14,
+        "symbol": "L_sym",
+        "weight": 0.04,
+        "description": "W_ff/W_fb cosine symmetry floor",
+        "stage": "D1+"
+      },
+      {
+        "id": 15,
+        "symbol": "L_attn",
+        "weight": 0.04,
+        "description": "External attention retrieval quality",
+        "stage": "D4+"
+      },
+      {
+        "id": 16,
+        "symbol": "L_expr",
+        "weight": 0.04,
+        "description": "Internal expression causal quality",
+        "stage": "D4+"
+      },
+      {
+        "id": 17,
+        "symbol": "L_geom",
+        "weight": 0.03,
+        "description": "Cross-geometry consistency",
+        "stage": "D1+"
+      },
+      {
+        "id": 18,
+        "symbol": "L_compart",
+        "weight": 0.03,
+        "description": "Compartment disentanglement",
+        "stage": "D1+"
+      },
+      {
+        "id": 19,
+        "symbol": "L_fast_adapt",
+        "weight": 0.08,
+        "description": "Meta-episode query performance given support-set",
+        "stage": "D6"
+      },
+      {
+        "id": 20,
+        "symbol": "L_retrieval",
+        "weight": 0.05,
+        "description": "ERS utility score prediction accuracy",
+        "stage": "D5+"
+      },
+      {
+        "id": 21,
+        "symbol": "L_comp_split",
+        "weight": 0.07,
+        "description": "Performance on held-out compositional test instances",
+        "stage": "D5+"
+      },
+      {
+        "id": 22,
+        "symbol": "L_forget",
+        "weight": 0.06,
+        "description": "EWC forgetting penalty during online updates",
+        "stage": "D6"
+      },
+      {
+        "id": 23,
+        "symbol": "L_linguistic",
+        "weight": 0.07,
+        "description": "USL round-trip fidelity: encode\u00e2\u2020\u2019decode\u00e2\u2020\u2019encode consistency",
+        "stage": "D4+"
+      },
+      {
+        "id": 24,
+        "symbol": "L_emo_calib",
+        "weight": 0.05,
+        "description": "Emotional shape induction accuracy",
+        "stage": "D3+"
+      },
+      {
+        "id": 25,
+        "symbol": "L_social",
+        "weight": 0.05,
+        "description": "Verifier agreement rate on socially observed traces",
+        "stage": "D3+"
+      },
+      {
+        "id": 26,
+        "symbol": "L_temporal",
+        "weight": 0.06,
+        "description": "Pulse savings from temporal motif replay",
+        "stage": "D5+"
+      }
+    ]
+  },
+  "developmental_stages": {
+    "D1": {
+      "name": "Sensorimotor Grounding",
+      "data": "ARC-AGI grids (60%) + synthetic relational graphs (40%)",
+      "gates": {
+        "grid_accuracy": ">= 0.75",
+        "relation_prediction": ">= 0.85",
+        "temporal_trace_persistence": "> 5 pulses"
+      }
+    },
+    "D2": {
+      "name": "Causal and Relational Grounding",
+      "data": "Causal intervention datasets, abstract analogy tasks, synthetic causal graphs",
+      "gates": {
+        "causal_intervention_accuracy": ">= 0.80",
+        "abstract_analogy_score": ">= 0.75",
+        "vsa_bond_recall_causal": ">= 0.90"
+      }
+    },
+    "D3": {
+      "name": "Social and Theory-of-Mind Grounding",
+      "data": "Agent observation traces, false-belief tasks, cooperative/competitive interaction traces",
+      "gates": {
+        "false_belief_accuracy": ">= 0.75",
+        "goal_inference_partial": ">= 0.70",
+        "trust_calibration_rmse": "< 0.15"
+      }
+    },
+    "D4": {
+      "name": "Linguistic Grounding",
+      "data": "TinyStories subset paired with structural representations, grounded language only",
+      "gates": {
+        "usl_roundtrip_fidelity": ">= 0.85",
+        "language_grounded_analogy": ">= 0.80",
+        "isl_coherent_episodes": ">= 0.70"
+      }
+    },
+    "D5": {
+      "name": "Abstract Reasoning and Formal Competence",
+      "data": "ARC-AGI-3 environments, math/logic reasoning, multi-step planning, PSN-1 P6-P11 data",
+      "gates": {
+        "math_verification_rate": ">= 0.92",
+        "multi_step_planning": ">= 0.80",
+        "compositional_split": ">= 0.75"
+      }
+    },
+    "D6": {
+      "name": "Full Integration and Meta-Learning",
+      "data": "All previous + language interface, tool use traces, social learning traces, multi-modal tasks",
+      "gates": {
+        "sample_complexity_ratio": ">= 10x on 3/5 families",
+        "temporal_motif_savings": ">= 3 pulses",
+        "curiosity_resolution_rate": ">= 0.60"
+      }
+    }
+  },
+  "tickets": [
+    {
+      "id": "T01",
+      "title": "VSA Engine \u00e2\u20ac\u201d bipolar bind, bundle, cosine, cleanup with straight-through estimator",
+      "acceptance_criteria": [
+        "bind(a, b) returns element-wise multiply of bipolar vectors",
+        "bundle(vectors, weights) returns weighted sum + sign normalization",
+        "cosine(a, b) returns correct similarity",
+        "cleanup(query, codebook) returns nearest codebook entry with straight-through gradient",
+        "All ops differentiable; gradient flows verified in unit test"
+      ],
+      "passes": true,
+      "priority": 1,
+      "blocked_by": [],
+      "files": [
+        "psn2/vsa.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T02",
+      "title": "NodeBank \u00e2\u20ac\u201d stateful node population with nu, e, tau, sigma, budget",
+      "acceptance_criteria": [
+        "NodeBank holds (max_nodes, dim) prediction vectors nu",
+        "Tracks per-node error e, temporal trace tau, node type sigma, budget b",
+        "update_errors(shape) computes prediction error from input shape",
+        "Silent node decay: tau *= lambda_tau, e *= lambda_e_silent per pulse"
+      ],
+      "passes": true,
+      "priority": 2,
+      "blocked_by": [
+        "T01"
+      ],
+      "files": [
+        "psn2/node.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T03",
+      "title": "SCE \u00e2\u20ac\u201d spike decision rule with surrogate gradient and phase-dependent thresholds",
+      "acceptance_criteria": [
+        "spike_i = 1 iff e_i > tau_spike(phase, sigma_i, b_i)",
+        "Thresholds: perceptive=0.30, compositional=0.20, recursive=0.10, commit=0.40",
+        "Straight-through estimator surrogate: 1/(1+|e_i - tau_spike|)^2",
+        "Silent nodes: trace decays, prediction unchanged, error decays at 0.95",
+        "Unit test: >= 80% silent nodes on synthetic familiar inputs"
+      ],
+      "passes": true,
+      "priority": 3,
+      "blocked_by": [
+        "T02"
+      ],
+      "files": [
+        "psn2/sce.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T04",
+      "title": "Attractor Library \u00e2\u20ac\u201d codebook store, cosine retrieval, pruning by utility",
+      "acceptance_criteria": [
+        "Max 10,000 entries, ~200MB memory cap",
+        "Insert if no match (cos < 0.6)",
+        "Retrieve via cosine top-k cleanup",
+        "Prune lowest-utility entries when cap exceeded"
+      ],
+      "passes": true,
+      "priority": 4,
+      "blocked_by": [
+        "T01"
+      ],
+      "files": [
+        "psn2/attractor.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T05",
+      "title": "Curiosity Engine \u00e2\u20ac\u201d event detection, goal generation, scheduling, resolution",
+      "acceptance_criteria": [
+        "Detect curiosity event: e_i > 0.50 AND dl_i > 2.5 AND budget < 30% AND node not committed",
+        "Generate CuriosityGoal shape with target_VSA, priority, budget_reserve",
+        "Store in ERS with utility_score=0.80",
+        "Schedule: load pending goals at episode start if cos > 0.40",
+        "Resolve: promote to Semantic if cos(committed, target) > 0.65; else reschedule with +0.10 priority"
+      ],
+      "passes": true,
+      "priority": 5,
+      "blocked_by": [
+        "T02",
+        "T04"
+      ],
+      "files": [
+        "psn2/curiosity.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T06",
+      "title": "Temporal Motif Library \u00e2\u20ac\u201d detection, storage, promotion gates",
+      "acceptance_criteria": [
+        "Detect motif candidate: seq >= 3 pulses, recurrence >= 5, similarity >= 0.75",
+        "Store temporal_motif_shape with pulse_sequence_VSA, trigger_VSA, outcome_VSA, success_rate",
+        "Promotion gates: recurrence >= 10, success_rate >= 0.75, pulse_savings >= 3, interference <= 0.03",
+        "Motif replay: inject pre-formed shapes in Perceptive regime, verify with preliminary check"
+      ],
+      "passes": true,
+      "priority": 6,
+      "blocked_by": [
+        "T01"
+      ],
+      "files": [
+        "psn2/motif.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T07",
+      "title": "Growth Ledger \u00e2\u20ac\u201d node spawning, attractor expansion, pruning protocol",
+      "acceptance_criteria": [
+        "Spawn new node when persistent error > 0.6 for 5 pulses; initialize nu_new = nu_i + noise",
+        "Max nodes = 5,000 hard cap",
+        "Attractor expansion: add if no cos > 0.6 match; cap at 10k; prune lowest utility",
+        "Growth rate <= compression rate constraint tracked in ledger"
+      ],
+      "passes": true,
+      "priority": 7,
+      "blocked_by": [
+        "T02",
+        "T04"
+      ],
+      "files": [
+        "psn2/growth.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T08",
+      "title": "ARC Grid Dataset \u00e2\u20ac\u201d synthetic pattern completion without language",
+      "acceptance_criteria": [
+        "Generate synthetic ARC-style grids: input grid + target completed grid",
+        "Configurable grid_size and vocab",
+        "Returns dict with type='arc', input_grid, target_grid tensors",
+        "Supports DataLoader with custom collate"
+      ],
+      "passes": true,
+      "priority": 8,
+      "blocked_by": [],
+      "files": [
+        "psn2/datasets/__init__.py",
+        "psn2/datasets/arc.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T09",
+      "title": "Relational Graph Dataset \u00e2\u20ac\u201d entity-relation triples with masked prediction",
+      "acceptance_criteria": [
+        "Generate structured (entity, relation, entity) triples",
+        "Task: predict masked entity or relation element",
+        "Returns dict with type='graph', entities, relations, target_entity, target_relation",
+        "Configurable vocab_size, num_entities"
+      ],
+      "passes": true,
+      "priority": 9,
+      "blocked_by": [],
+      "files": [
+        "psn2/datasets/__init__.py",
+        "psn2/datasets/graph.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T10",
+      "title": "PSN2System core \u00e2\u20ac\u201d Phase A-F loop, grid encoder/decoder, graph encoder/decoder",
+      "acceptance_criteria": [
+        "forward_batch handles both 'arc' and 'graph' batch types",
+        "Grid path: encode_grid \u00e2\u2020\u2019 NodeBank aggregation \u00e2\u2020\u2019 grid_decoder \u00e2\u2020\u2019 cross-entropy loss",
+        "Graph path: encode_graph \u00e2\u2020\u2019 NodeBank aggregation \u00e2\u2020\u2019 entity/relation decoders \u00e2\u2020\u2019 loss",
+        "Loss = L_pred + 0.1 * L_shape + 0.01 * L_spike",
+        "maybe_grow on high error triggers curiosity goals and attractor expansion"
+      ],
+      "passes": true,
+      "priority": 10,
+      "blocked_by": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09"
+      ],
+      "files": [
+        "psn2/core.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T11",
+      "title": "Checkpoint System \u00e2\u20ac\u201d serialize/resume all state across Kaggle sessions",
+      "acceptance_criteria": [
+        "Serialize: model state_dict, attractor library, curiosity goals, motif library, growth ledger, node errors/traces",
+        "Format: PyTorch state dict + JSON metadata",
+        "Checkpoint every 30 minutes and at session end",
+        "Resume: load all state and continue training from last step",
+        "Round-trip test: save \u00e2\u2020\u2019 load \u00e2\u2020\u2019 verify identical state"
+      ],
+      "passes": true,
+      "priority": 11,
+      "blocked_by": [
+        "T10"
+      ],
+      "files": [
+        "psn2/checkpoint.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T12",
+      "title": "Training Loop \u00e2\u20ac\u201d D1/D2 mixed curriculum with ARC (60%) + graphs (40%)",
+      "acceptance_criteria": [
+        "Mixed training: sample ARC grids with p=0.60, relational graphs with p=0.40",
+        "Phase progression: perceptive \u00e2\u2020\u2019 compositional \u00e2\u2020\u2019 recursive over training steps",
+        "Gradient clipping at 1.0",
+        "Logging: loss_pred, loss_shape, loss_spike, attractor count, goal count",
+        "Configurable via configs/default.json"
+      ],
+      "passes": true,
+      "priority": 12,
+      "blocked_by": [
+        "T10",
+        "T11"
+      ],
+      "files": [
+        "train.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T13",
+      "title": "ERS Memory System \u00e2\u20ac\u201d Working/Episodic/Semantic tiers with promotion and decay",
+      "acceptance_criteria": [
+        "Three tiers: Working (ephemeral), Episodic (session), Semantic (compressed)",
+        "Store tuples: (input_VSA, trace_VSA, output_VSA, source, utility_score)",
+        "Promotion: utility > 0.7 promotes Working \u00e2\u2020\u2019 Episodic \u00e2\u2020\u2019 Semantic",
+        "Decay: each tier has configurable decay_state",
+        "Retrieval by cosine similarity with tau_ers=0.45 threshold",
+        "Memory bounded: prune lowest utility on overflow"
+      ],
+      "passes": true,
+      "priority": 13,
+      "blocked_by": [
+        "T01",
+        "T04"
+      ],
+      "files": [
+        "psn2/ers.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T14",
+      "title": "Phase A-F Pulse Cycle \u00e2\u20ac\u201d proper multi-phase prediction-error loop",
+      "acceptance_criteria": [
+        "Phase A: evidence integration (proximal + modulatory inputs)",
+        "Phase B: bond update via VSA bind mechanics",
+        "Phase C: morphogenic field \u00e2\u20ac\u201d role and type transitions, shape induction",
+        "Phase D: shape formation \u00e2\u20ac\u201d coalition detection, stability computation",
+        "Phase E: verifier gate \u00e2\u20ac\u201d suppress unsupported shapes",
+        "Phase F: commitment \u00e2\u20ac\u201d render buffer output, dissolve unstable shapes",
+        "Each phase respects spike_gate: only spiking nodes participate",
+        "Multi-pulse iteration with budget tracking"
+      ],
+      "passes": true,
+      "priority": 14,
+      "blocked_by": [
+        "T03",
+        "T13"
+      ],
+      "files": [
+        "psn2/phases.py",
+        "psn2/core.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T15",
+      "title": "Bond System \u00e2\u20ac\u201d typed VSA bonds with permutation indices and legality matrix",
+      "acceptance_criteria": [
+        "Bond types vocabulary: causal, temporal, spatial, part-whole + 10 linguistic (P_10\u00e2\u20ac\u201cP_19)",
+        "Bond formation: bind(perm_TYPE(a.semantic_v), b.semantic_v)",
+        "Bond strength tracking per pulse with decay lambda=0.90",
+        "Legality matrix: which bond types can connect which shape types",
+        "Bond recovery test: unbind + cleanup recovers original vectors"
+      ],
+      "passes": true,
+      "priority": 15,
+      "blocked_by": [
+        "T01"
+      ],
+      "files": [
+        "psn2/bonds.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T16",
+      "title": "Emotional Shape System (ESS) \u00e2\u20ac\u201d 8 emotional types with bond-mediated influence",
+      "acceptance_criteria": [
+        "8 emotional shape types: threat-fear, uncertainty-discomfort, curiosity-drive, confidence, urgency, satisfaction, frustration, aesthetic-resonance",
+        "Emotional shape induction via morphogenic MLP in Phase C",
+        "Emotional bonds: bind(perm_EMO(E.semantic_v), S.centroid_nu)",
+        "delta_theta_commit: signed effect per emotional type on bonded shape thresholds",
+        "lambda_emo=0.85 decay per pulse (faster than cognitive bonds)",
+        "Emotional calibration loss L_emo_calib active from D3+"
+      ],
+      "passes": true,
+      "priority": 16,
+      "blocked_by": [
+        "T15",
+        "T14"
+      ],
+      "files": [
+        "psn2/ess/emotional_shapes.py",
+        "psn2/ess/emotional_bonds.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T17",
+      "title": "Field Vector Compatibility Bridge \u00e2\u20ac\u201d map legacy F_t to ESS mechanisms",
+      "acceptance_criteria": [
+        "All 7 legacy field dimensions mapped: focus\u00e2\u2020\u2019attention-narrowing bond, curiosity\u00e2\u2020\u2019CE goal, caution\u00e2\u2020\u2019fear emotional shape, urgency\u00e2\u2020\u2019urgency emotional shape, play\u00e2\u2020\u2019novelty emotional shape, consistency\u00e2\u2020\u2019self-shape regulatory bond, aesthetic\u00e2\u2020\u2019aesthetic self-shape",
+        "No legacy field vector code path remains active",
+        "Bridge is transparent: callers get ESS-mediated behaviour"
+      ],
+      "passes": true,
+      "priority": 17,
+      "blocked_by": [
+        "T16"
+      ],
+      "files": [
+        "psn2/ess/emo_field_bridge.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T18",
+      "title": "Lexical Attractor Library (LAL) \u00e2\u20ac\u201d word shape storage and retrieval",
+      "acceptance_criteria": [
+        "Word shape schema: semantic_v (R^D), syntactic_v (R^512), pragmatic_v (R^256), freq_v (R^16), phi_i (float)",
+        "Store up to 65,536 word shapes (Kaggle: start with 5k)",
+        "Retrieval via VSA cleanup projection (cosine top-k)",
+        "Update operations: add, merge, prune by frequency"
+      ],
+      "passes": true,
+      "priority": 18,
+      "blocked_by": [
+        "T04"
+      ],
+      "files": [
+        "psn2/usl/lal.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T19",
+      "title": "Linguistic Bond Types \u00e2\u20ac\u201d 10 bond types with VSA permutation indices P_10\u00e2\u20ac\u201cP_19",
+      "acceptance_criteria": [
+        "10 bond types: MODIFIES, DETERMINES, SUBJECT_OF, OBJECT_OF, PREDICATE_OF, DISCOURSE_CONTINUES, DISCOURSE_CONTRASTS, DISCOURSE_GROUNDS, COREFERS_WITH, SCOPES_OVER",
+        "Each has unique VSA permutation index P_10 through P_19",
+        "Legality matrix entries defined",
+        "Round-trip recovery test for each bond type: bind \u00e2\u2020\u2019 unbind \u00e2\u2020\u2019 cleanup matches"
+      ],
+      "passes": true,
+      "priority": 19,
+      "blocked_by": [
+        "T15"
+      ],
+      "files": [
+        "psn2/usl/linguistic_bonds.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T20",
+      "title": "Syntax Encoder \u00e2\u20ac\u201d lightweight dependency parser producing bond proposals",
+      "acceptance_criteria": [
+        "Input: sequence of word shapes",
+        "Output: list of (i, j, bond_type, strength) tuples",
+        "Learned module (small MLP or attention-based)",
+        "Trained on dependency-annotated corpora during D4"
+      ],
+      "passes": true,
+      "priority": 20,
+      "blocked_by": [
+        "T18",
+        "T19"
+      ],
+      "files": [
+        "psn2/usl/syntax_encoder.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T21",
+      "title": "USL Codec \u00e2\u20ac\u201d bidirectional understand() and generate() pipeline",
+      "acceptance_criteria": [
+        "understand(text): tokenize \u00e2\u2020\u2019 LAL retrieve \u00e2\u2020\u2019 syntax_encoder \u00e2\u2020\u2019 Phase B \u00e2\u2020\u2019 linguistic shapes into Phase A",
+        "generate(committed_shape): LAL cleanup \u00e2\u2020\u2019 syntax_decoder \u00e2\u2020\u2019 pragmatics_renderer \u00e2\u2020\u2019 verifier check \u00e2\u2020\u2019 emit or veto",
+        "Round-trip fidelity test: encode \u00e2\u2020\u2019 decode must recover original shape with fidelity >= 0.85",
+        "Symmetric: same VSA operations in both directions"
+      ],
+      "passes": true,
+      "priority": 21,
+      "blocked_by": [
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "files": [
+        "psn2/usl/codec.py",
+        "psn2/usl/syntax_decoder.py",
+        "psn2/usl/pragmatics.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T22",
+      "title": "Inner Speech Loop (ISL) \u00e2\u20ac\u201d draft verbal propositions as modulatory evidence",
+      "acceptance_criteria": [
+        "Trigger: regime==Recursive AND uncertainty > 0.55 AND pulse_remaining > B_max/4",
+        "Generate: USL_generate(best_candidate_shape, mode='tentative')",
+        "Re-encode: USL_understand(draft_text) \u00e2\u2020\u2019 draft_shapes",
+        "Write to Working ERS with source='inner_speech'",
+        "Feed into Phase A as modulatory input (NOT proximal)",
+        "Test: ISL cannot override external evidence"
+      ],
+      "passes": true,
+      "priority": 22,
+      "blocked_by": [
+        "T21",
+        "T13",
+        "T14"
+      ],
+      "files": [
+        "psn2/usl/isl.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T23",
+      "title": "Social Learning System (SLS) \u00e2\u20ac\u201d social shapes, trace reconstruction, trust",
+      "acceptance_criteria": [
+        "Social shape: agent_id, goal_VSA, reasoning_style, competence dict, trust [0,1]",
+        "Trace reconstruction: observed (input, steps, output) \u00e2\u2020\u2019 encode \u00e2\u2020\u2019 infer bonds \u00e2\u2020\u2019 synthetic ERS tuple",
+        "Trust update: +0.05 on verifier agreement, -0.15 on disagreement, bounded [0.05, 1.0]",
+        "Trust < 0.30: traces go to Working tier only",
+        "Self-distillation: treat own verified traces as high-trust social observations"
+      ],
+      "passes": true,
+      "priority": 23,
+      "blocked_by": [
+        "T13",
+        "T15",
+        "T16"
+      ],
+      "files": [
+        "psn2/sls/social_shape.py",
+        "psn2/sls/trace_reconstructor.py",
+        "psn2/sls/self_distillation.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T24",
+      "title": "Temporal Abstraction Engine (TAE) \u00e2\u20ac\u201d full motif detection, replay, TAL library",
+      "acceptance_criteria": [
+        "Temporal motif shape: pulse_sequence_VSA, ordering_encoding, duration, trigger_VSA, outcome_VSA, success_rate, pulse_savings",
+        "TAL (Temporal Attractor Library): store, retrieve (cosine top-k), promote, retire",
+        "Motif replay: inject pulse sequence as pre-formed shapes in Perceptive regime",
+        "Verifier preliminary check on replay result",
+        "Pulse savings tracking and success rate feedback loop",
+        "Four promotion gates: recurrence >= 10, success_rate >= 0.75, savings >= 3, interference <= 0.03"
+      ],
+      "passes": true,
+      "priority": 24,
+      "blocked_by": [
+        "T06",
+        "T14"
+      ],
+      "files": [
+        "psn2/tae/motif_detector.py",
+        "psn2/tae/motif_replay.py",
+        "psn2/tae/tal.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T25",
+      "title": "Curiosity Engine (CE) \u00e2\u20ac\u201d full lifecycle with ERS integration",
+      "acceptance_criteria": [
+        "Curiosity event detection with all four conditions: e > 0.50, dl > 2.5, budget < 30%, node not committed",
+        "Goal shape: shape_class='goal', goal_type='uncertainty_reduction', target_VSA, priority, budget_reserve",
+        "Scheduling: at episode start, retrieve pending goals from Episodic ERS by cos similarity",
+        "Load curiosity goal as pre-committed meta-shape; reserve extra budget; lower tau_spike for nearby nodes",
+        "Resolution: promote to Semantic if resolved (cos > 0.65); reschedule with higher priority if not"
+      ],
+      "passes": true,
+      "priority": 25,
+      "blocked_by": [
+        "T05",
+        "T13"
+      ],
+      "files": [
+        "psn2/ce/curiosity_detector.py",
+        "psn2/ce/goal_generator.py",
+        "psn2/ce/goal_scheduler.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T26",
+      "title": "Self Shape \u00e2\u20ac\u201d persistent model of system state, competence, goals, identity",
+      "acceptance_criteria": [
+        "Self-shape bonds to emotional shapes and goal shapes",
+        "Updated continuously during operation",
+        "Regulatory bonds: identity constraints raise suppression probability on violating shapes",
+        "Attention-narrowing bond to active task shape",
+        "Aesthetic self-shape with harmonic geometry preferences",
+        "Persistent across tasks (not transient like meta-shapes)"
+      ],
+      "passes": true,
+      "priority": 26,
+      "blocked_by": [
+        "T16",
+        "T15"
+      ],
+      "files": [
+        "psn2/self_shape.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T27",
+      "title": "Developmental Stage D1 \u00e2\u20ac\u201d sensorimotor grounding curriculum and gate certification",
+      "acceptance_criteria": [
+        "Data loader: ARC-AGI grids (60%) + synthetic relational graphs (40%)",
+        "Gate: grid accuracy >= 0.75",
+        "Gate: relation prediction >= 0.85",
+        "Gate: temporal trace persistence > 5 pulses for tracked objects",
+        "Gate certifier blocks D2 until all D1 gates pass",
+        "Runs within single Kaggle session (~9 hours)"
+      ],
+      "passes": true,
+      "priority": 27,
+      "blocked_by": [
+        "T12",
+        "T14"
+      ],
+      "files": [
+        "psn2/dc/stage_d1.py",
+        "psn2/dc/gate_certifier.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T28",
+      "title": "Developmental Stage D2 \u00e2\u20ac\u201d causal and relational grounding",
+      "acceptance_criteria": [
+        "Data: causal intervention datasets, abstract analogy tasks, synthetic causal graphs",
+        "Gate: causal intervention accuracy >= 0.80",
+        "Gate: abstract analogy score >= 0.75",
+        "Gate: VSA bond recall for causal relation types >= 0.90",
+        "D1 gates must be certified before D2 begins"
+      ],
+      "passes": true,
+      "priority": 28,
+      "blocked_by": [
+        "T27"
+      ],
+      "files": [
+        "psn2/dc/stage_d2.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T29",
+      "title": "Developmental Stage D3 \u00e2\u20ac\u201d social and theory-of-mind grounding",
+      "acceptance_criteria": [
+        "Data: agent observation traces, false-belief tasks",
+        "Gate: false-belief task accuracy >= 0.75",
+        "Gate: goal inference from partial observation >= 0.70",
+        "Gate: social shape trust calibration RMSE < 0.15",
+        "D2 gates must be certified before D3 begins"
+      ],
+      "passes": true,
+      "priority": 29,
+      "blocked_by": [
+        "T28",
+        "T23"
+      ],
+      "files": [
+        "psn2/dc/stage_d3.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T30",
+      "title": "Developmental Stage D4 \u00e2\u20ac\u201d linguistic grounding with USL training",
+      "acceptance_criteria": [
+        "Data: TinyStories subset paired with structural representations",
+        "LAL population during this stage",
+        "ISL activation during this stage",
+        "Gate: USL round-trip fidelity >= 0.85",
+        "Gate: language-grounded analogy >= 0.80",
+        "Gate: ISL produces coherent inner speech on >= 70% of Recursive episodes",
+        "D3 gates must be certified before D4 begins"
+      ],
+      "passes": true,
+      "priority": 30,
+      "blocked_by": [
+        "T29",
+        "T21",
+        "T22"
+      ],
+      "files": [
+        "psn2/dc/stage_d4.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T31",
+      "title": "Developmental Stage D5 \u00e2\u20ac\u201d abstract reasoning and formal competence",
+      "acceptance_criteria": [
+        "Data: ARC-AGI-3 environments, math/logic tasks, multi-step planning, PSN-1 P6-P11 data",
+        "CE active; TAE motif detection begins",
+        "Gate: math verification rate >= 0.92",
+        "Gate: multi-step planning success >= 0.80",
+        "Gate: compositional split score >= 0.75",
+        "D4 gates must be certified before D5 begins"
+      ],
+      "passes": true,
+      "priority": 31,
+      "blocked_by": [
+        "T30",
+        "T24",
+        "T25"
+      ],
+      "files": [
+        "psn2/dc/stage_d5.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T32",
+      "title": "Developmental Stage D6 \u00e2\u20ac\u201d full integration and meta-learning",
+      "acceptance_criteria": [
+        "All systems active: USL, SCE, ESS, ISL, CE, SLS, TAE",
+        "FSGC meta-learning curriculum runs across all task families",
+        "All 26 loss components active",
+        "Gate: SCR >= 10x on 3/5 held-out families",
+        "Gate: temporal motif pulse savings >= 3",
+        "Gate: curiosity resolution rate >= 0.60",
+        "All PSN-1 v1.0 and v1.1 release gates pass"
+      ],
+      "passes": true,
+      "priority": 32,
+      "blocked_by": [
+        "T31"
+      ],
+      "files": [
+        "psn2/dc/stage_d6.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T33",
+      "title": "Expanded Loss Family \u00e2\u20ac\u201d activate per-stage loss components (26 total)",
+      "acceptance_criteria": [
+        "D1+ losses: L_error, L_bond, L_shape, L_compact, L_vsa, L_mpf, L_attractor, L_sym, L_geom, L_compart (10 components)",
+        "D2+ losses: add L_refine, L_world, L_verify, L_calib (4 components)",
+        "D3+ losses: add L_emo_calib, L_social (2 components)",
+        "D4+ losses: add L_linguistic, L_render, L_attn, L_expr (4 components)",
+        "D5+ losses: add L_transfer, L_retrieval, L_comp_split, L_temporal (4 components)",
+        "D6 losses: add L_fast_adapt, L_forget (2 components)",
+        "Normalization: L_total = SUM(w_i * L_i) / 1.98",
+        "Stage gate certifier only activates losses appropriate to current stage"
+      ],
+      "passes": true,
+      "priority": 33,
+      "blocked_by": [
+        "T14",
+        "T16",
+        "T21"
+      ],
+      "files": [
+        "psn2/losses.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T34",
+      "title": "Evaluation Scorecard \u00e2\u20ac\u201d five-dimension release gate verification",
+      "acceptance_criteria": [
+        "Reasoning Integrity: RHAE positive on all 6 env classes, false-commit < 0.5%, verifier > 95%",
+        "Language Quality: human rater >= 4.0/5.0, grounding violation < 1%, USL fidelity >= 0.85",
+        "Learning Efficiency: SCR >= 10x on 3/5 families, k=1 >= 40% of full-data, CompSplit >= 0.75",
+        "Energy Efficiency: mean sparsity >= 80% familiar, energy <= 5% of transformer",
+        "Cognitive Unity: every system ablation degrades >= 2 dimensions, none improves any"
+      ],
+      "passes": true,
+      "priority": 34,
+      "blocked_by": [
+        "T32"
+      ],
+      "files": [
+        "evaluate.py"
+      ],
+      "status": "implemented"
+    },
+    {
+      "id": "T35",
+      "title": "Smoke Test Suite \u00e2\u20ac\u201d quick validation for CI and pre-training checks",
+      "acceptance_criteria": [
+        "Run forward pass on 1 batch each of arc and graph",
+        "Verify loss is finite and gradients flow",
+        "Verify checkpoint round-trip",
+        "Complete in < 30 seconds"
+      ],
+      "passes": true,
+      "priority": 35,
+      "blocked_by": [
+        "T10"
+      ],
+      "files": [
+        "scripts/smoke_test.py"
+      ],
+      "status": "implemented"
+    }
+  ],
+  "non_goals_kaggle_phase": [
+    "Neuromorphic deployment (Loihi/NorthPole compilation)",
+    "Full-scale social learning with real multi-agent traces",
+    "Large-scale language modeling (65k vocab LAL)",
+    "VSA dimensionality > 1024",
+    "Human Parity Test (requires D6 completion)"
+  ],
+  "kaggle_session_plan": {
+    "session_1": {
+      "target": "Core substrate \u00e2\u20ac\u201d system can form and commit shapes from structured input",
+      "tickets": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T35"
+      ],
+      "status": "complete"
+    },
+    "session_2": {
+      "target": "Spiking + language foundation \u00e2\u20ac\u201d system can induce shapes from language input",
+      "tickets": [
+        "T13",
+        "T14",
+        "T15",
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "status": "not_started"
+    },
+    "session_3": {
+      "target": "Generation + curiosity \u00e2\u20ac\u201d system generates language from committed shapes + curiosity goals",
+      "tickets": [
+        "T16",
+        "T17",
+        "T21",
+        "T22",
+        "T25"
+      ],
+      "status": "not_started"
+    },
+    "session_4_plus": {
+      "target": "Growth protocol + developmental curriculum \u00e2\u20ac\u201d system grows across sessions",
+      "tickets": [
+        "T23",
+        "T24",
+        "T26",
+        "T27",
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T32",
+        "T33",
+        "T34"
+      ],
+      "status": "not_started"
+    }
+  }
+}
