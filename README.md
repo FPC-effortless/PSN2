@@ -45,20 +45,24 @@ python evaluate.py --config configs/default.json --checkpoint artifacts/latest.p
 
 ## Kaggle Training
 
-### One-time setup
+### Package the repo (run once locally)
 ```bash
-# Package everything (run from repo root)
-bash scripts/package_kaggle.sh
-# → creates psn2_kaggle_full.zip (~50MB without wikitext)
+python scripts/package_kaggle.py
+# → psn2_kaggle_full.zip (~4MB, wikitext excluded)
 ```
 
-### Per session
-1. Go to [kaggle.com/datasets](https://kaggle.com/datasets) → **New Dataset** → upload `psn2_kaggle_full.zip`
-2. Create a new **Notebook** → attach the dataset
-3. **Settings → Accelerator → GPU T4 x2** (or P100)
-4. Upload `kaggle_train.ipynb` or paste its cells
-5. Set `STAGE = 'D1'` in the config cell (change per session)
-6. Run all cells
+### One-time Kaggle setup
+1. [kaggle.com/datasets](https://kaggle.com/datasets) → **New Dataset** → upload `psn2_kaggle_full.zip` → name it `psn2-kaggle`
+2. **Account → Settings → API → Create New Token** → download `kaggle.json`
+3. In your notebook: **Add-ons → Secrets** → add `KAGGLE_USERNAME` and `KAGGLE_KEY`
+4. Create a **Notebook** → attach `psn2-kaggle` → **Settings → Accelerator → GPU T4 x2**
+5. Upload `kaggle_train.ipynb`, set `STAGE = 'D1'`, run all cells
+
+### Subsequent sessions — fully automatic
+- The notebook pushes `latest.pt` to a `psn2-checkpoint` Kaggle dataset at session end
+- On crash or error it pushes immediately via an exit handler
+- Next session: attach both `psn2-kaggle` and `psn2-checkpoint` → run all cells → auto-resumes
+- No manual download/upload needed
 
 ### Session plan (PRD Section 17.3)
 
@@ -71,16 +75,8 @@ bash scripts/package_kaggle.sh
 | 8–9 | D5 | 30,000 | ARC-AGI-2 + GSM8K |
 | 10+ | D6 | 40,000 | All data + BBH |
 
-### Resuming across sessions
-- Download `artifacts/latest.pt` from the previous session's output
-- Upload it as a **separate dataset attachment** in the next session
-- The notebook auto-detects and resumes from it
-
 ### Wikitext (D4)
-Wikitext is 550MB — too large for the main zip. Options:
-- Upload `data/d4_wikitext/` as a separate Kaggle dataset
-- Set `cfg['data_dir']` to its mount path in the notebook config cell
-- Without it, D4 falls back to synthetic ARC data
+Wikitext is 550MB — excluded from the main zip. Upload `data/d4_wikitext/` as a separate Kaggle dataset and attach it. Without it, D4 falls back to synthetic ARC data.
 
 ## Tests
 

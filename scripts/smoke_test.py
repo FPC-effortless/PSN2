@@ -53,7 +53,7 @@ if os.path.exists(tomi_path):
     ds = ToMiDataset(tomi_path, max_samples=20)
     tests.append(("ToMiDataset (D3)", ds))
 
-    wiki_path = f"{data_dir}/d4_wikitext/train.jsonl"
+wiki_path = f"{data_dir}/d4_wikitext/train.jsonl"
 if os.path.exists(wiki_path):
     ds = WikitextDataset(wiki_path, vocab_size=10, grid_size=8, max_samples=20)
     tests.append(("WikitextDataset (D4)", ds))
