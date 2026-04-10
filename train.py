@@ -92,11 +92,13 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
 
     max_wiki = cfg.get("max_wikitext_samples", 50000)
     max_arc2 = cfg.get("max_arc2_samples", None)
+    # arc_grid_size: real ARC-AGI-2 pad size; defaults to 30 (natural max)
+    arc_grid_size = cfg.get("arc_grid_size", 30)
 
     if stage == "D1":
         # 60% ARC-AGI-2 grids, 40% synthetic relational graphs
         if _exists(arc2_train):
-            primary = ARCAGI2Dataset(arc2_train, max_grid_size=grid_size,
+            primary = ARCAGI2Dataset(arc2_train, max_grid_size=arc_grid_size,
                                      max_samples=max_arc2)
             print(f"  D1 primary: ARC-AGI-2 ({len(primary)} samples)")
         else:
@@ -108,7 +110,7 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
     elif stage == "D2":
         # 60% ARC-AGI-2 (causal tasks), 40% synthetic causal graphs
         if _exists(arc2_train):
-            primary = ARCAGI2Dataset(arc2_train, max_grid_size=grid_size,
+            primary = ARCAGI2Dataset(arc2_train, max_grid_size=arc_grid_size,
                                      max_samples=max_arc2)
             print(f"  D2 primary: ARC-AGI-2 ({len(primary)} samples)")
         else:
@@ -144,7 +146,7 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
             primary = arc_synthetic()
             print("  D4 primary: synthetic ARC (Wikitext not found)")
         if _exists(arc2_train):
-            secondary = ARCAGI2Dataset(arc2_train, max_grid_size=grid_size,
+            secondary = ARCAGI2Dataset(arc2_train, max_grid_size=arc_grid_size,
                                        max_samples=max_arc2)
         else:
             secondary = arc_synthetic()
@@ -154,7 +156,7 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
         # 40% ARC-AGI-2, 35% GSM8K, 25% synthetic
         datasets_arc = []
         if _exists(arc2_train):
-            ds = ARCAGI2Dataset(arc2_train, max_grid_size=grid_size, max_samples=max_arc2)
+            ds = ARCAGI2Dataset(arc2_train, max_grid_size=arc_grid_size, max_samples=max_arc2)
             datasets_arc.append(ds)
             print(f"  D5: ARC-AGI-2 ({len(ds)} samples)")
         else:
@@ -177,7 +179,7 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
         # 50% mixed D1-D5, 30% Wikitext, 20% BBH
         all_datasets = []
         if _exists(arc2_train):
-            all_datasets.append(ARCAGI2Dataset(arc2_train, max_grid_size=grid_size,
+            all_datasets.append(ARCAGI2Dataset(arc2_train, max_grid_size=arc_grid_size,
                                                max_samples=max_arc2))
         if _exists(gsm_train):
             all_datasets.append(GSM8KDataset(gsm_train, vocab_size=rel_vocab))
