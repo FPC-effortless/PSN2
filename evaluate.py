@@ -60,6 +60,7 @@ def eval_arc(model, loader, device) -> dict:
 def eval_graph(model, loader, device) -> dict:
     total_loss = 0.0
     total_correct = 0
+    total_samples = 0
     n = 0
     for batch in loader:
         batch = to_device(batch, device)
@@ -67,10 +68,11 @@ def eval_graph(model, loader, device) -> dict:
         total_loss += out["loss"].item()
         pred = out["pred"].argmax(dim=-1)
         total_correct += (pred == batch["target_entity"]).sum().item()
+        total_samples += batch["target_entity"].shape[0]
         n += 1
     return {
         "avg_loss": total_loss / max(n, 1),
-        "relation_prediction": total_correct / max(n, 1),
+        "relation_prediction": total_correct / max(total_samples, 1),
     }
 
 

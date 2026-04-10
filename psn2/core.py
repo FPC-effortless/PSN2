@@ -178,7 +178,13 @@ class PSN2System(nn.Module):
                 )
 
             committed_shape = controller.run_pulse(external_input=shape, modulatory_input=modulatory)
-            active_shape = committed_shape if committed_shape is not None else shape
+            if committed_shape is not None:
+                # committed_shape may be [D] (collapsed by phase_f mean); restore batch dim
+                if committed_shape.dim() == 1:
+                    committed_shape = committed_shape.unsqueeze(0).expand(shape.size(0), -1)
+                active_shape = committed_shape
+            else:
+                active_shape = shape
 
             # Fix #10: TAE motif replay in perceptive regime
             if self.tae_replay is not None and phase == "perceptive":
@@ -245,7 +251,13 @@ class PSN2System(nn.Module):
 
             shape = self.encode_graph(entities, relations)
             committed_shape = controller.run_pulse(external_input=shape)
-            active_shape = committed_shape if committed_shape is not None else shape
+            if committed_shape is not None:
+                # committed_shape may be [D] (collapsed by phase_f mean); restore batch dim
+                if committed_shape.dim() == 1:
+                    committed_shape = committed_shape.unsqueeze(0).expand(shape.size(0), -1)
+                active_shape = committed_shape
+            else:
+                active_shape = shape
 
             budget_fraction = controller.budget_fraction_used
             node_repr = self._node_repr(active_shape)

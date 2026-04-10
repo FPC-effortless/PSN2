@@ -82,11 +82,15 @@ class NodeBank(nn.Module):
         """
         Update the non-differentiable e/tau buffers from input x.
         Called inside torch.no_grad() contexts (e.g. growth checks).
+
+        tau steady-state = tau_gain * err / (1 - LAMBDA_TAU).
+        With LAMBDA_TAU=0.90 and tau_gain=0.60, steady-state ≈ 6*err,
+        allowing active nodes to exceed the >5 pulse gate threshold.
         """
         with torch.no_grad():
             err = self.compute_errors_differentiable(x).detach()
             self.e.copy_(err)
-            self.tau.mul_(LAMBDA_TAU).add_(0.10 * err)
+            self.tau.mul_(LAMBDA_TAU).add_(0.60 * err)
 
     # ------------------------------------------------------------------
     # Fix #7: silent_decay actually called (see PhaseController)
