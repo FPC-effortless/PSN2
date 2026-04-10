@@ -277,7 +277,7 @@ def main():
         else:
             phase = "recursive"
 
-        out = model.forward_batch(batch, phase=phase)
+        out = raw_model.forward_batch(batch, phase=phase)
         loss = out["loss"]
 
         opt.zero_grad()
