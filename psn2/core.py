@@ -209,8 +209,7 @@ class PSN2System(nn.Module):
 
             # Fix #14: wire loss family — compute all active losses
             loss_vsa = self.loss_family.L_vsa(active_shape, target_shape)
-            loss_compact = torch.tensor(float(len(self.attractors)), device=device) * 1e-5
-            loss_components = {
+            loss_compact = torch.tensor(float(len(self.attractors)), device=device) * 1e-5            loss_components = {
                 "L_error": loss_pred,
                 "L_shape": loss_shape if isinstance(loss_shape, torch.Tensor) else torch.tensor(loss_shape),
                 "L_vsa": loss_vsa,

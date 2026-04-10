@@ -54,7 +54,7 @@ def _exists(path: str) -> bool:
     return path and Path(path).exists()
 
 
-def build_loaders(cfg: dict, stage: str, batch_size: int):
+def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
     """
     Returns (primary_loader, secondary_loader, mix_ratio) for the given stage.
     mix_ratio = fraction of batches drawn from primary_loader.
@@ -72,9 +72,16 @@ def build_loaders(cfg: dict, stage: str, batch_size: int):
     def graph_synthetic():
         return RelationalGraphDataset(n_samples=n_syn, vocab_size=rel_vocab, num_entities=6)
 
+    num_workers = min(4, os.cpu_count() or 1)
+    pin = torch.cuda.is_available()
+    # Ensure batch_size is a multiple of n_gpus so DataParallel always gets even splits
+    batch_size = max(n_gpus, (batch_size // n_gpus) * n_gpus)
+
     def make_loader(ds: Dataset, shuffle: bool = True) -> DataLoader:
         return DataLoader(ds, batch_size=batch_size, shuffle=shuffle,
-                          collate_fn=collate, drop_last=True, num_workers=0)
+                          collate_fn=collate, drop_last=True,
+                          num_workers=num_workers, pin_memory=pin,
+                          persistent_workers=num_workers > 0)
 
     arc2_train = os.path.join(data_dir, "d5_arc_agi2", "train.jsonl")
     tom_train   = os.path.join(data_dir, "d3_tom", "train.jsonl")
@@ -133,7 +140,6 @@ def build_loaders(cfg: dict, stage: str, batch_size: int):
         if _exists(wiki_train):
             primary = WikitextDataset(wiki_train, vocab_size=grid_vocab,
                                       grid_size=grid_size, max_samples=max_wiki)
-            print(f"  D4 primary: Wikitext ({len(primary)} samples)")
         else:
             primary = arc_synthetic()
             print("  D4 primary: synthetic ARC (Wikitext not found)")
@@ -209,15 +215,16 @@ def main():
 
     cfg = load_config(args.config)
     set_seed(cfg["seed"])
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(cfg.get("device", "cuda") if torch.cuda.is_available() else "cpu")
     ensure_dir(cfg["checkpoint_dir"])
 
     stage = cfg.get("stage", "D1")
     batch_size = cfg["batch_size"]
     steps = cfg["steps"]
 
-    print(f"Stage: {stage} | Device: {device} | Steps: {steps} | Batch: {batch_size}")
-    primary_loader, secondary_loader, mix_ratio = build_loaders(cfg, stage, batch_size)
+    n_gpus = max(1, torch.cuda.device_count())
+    print(f"Stage: {stage} | Device: {device} | Steps: {steps} | Batch: {batch_size} | GPUs: {n_gpus}")
+    primary_loader, secondary_loader, mix_ratio = build_loaders(cfg, stage, batch_size, n_gpus)
 
     model = PSN2System(
         dim=cfg["vsa_dim"],
@@ -227,8 +234,16 @@ def main():
         stage=stage,
     ).to(device)
 
+    # Use both T4 GPUs if available
+    if n_gpus > 1:
+        print(f"  Using {n_gpus} GPUs via DataParallel")
+        model = torch.nn.DataParallel(model)
+
+    # Unwrapped reference for checkpoint/growth calls that need PSN2System directly
+    raw_model = model.module if isinstance(model, torch.nn.DataParallel) else model
+
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.get("lr_ff", cfg.get("lr", 1e-4)))
-    ckpt_mgr = CheckpointManager(cfg["checkpoint_dir"], model, opt)
+    ckpt_mgr = CheckpointManager(cfg["checkpoint_dir"], raw_model, opt)
     start_step = 0
 
     if args.resume:
@@ -245,6 +260,12 @@ def main():
     for step in tqdm(range(start_step, steps), desc=f"PSN-2 {stage}"):
         use_primary = (torch.rand(1).item() < mix_ratio)
         batch = next(primary_iter) if use_primary else next(secondary_iter)
+
+        # DataParallel requires batch >= n_gpus; skip undersized batches
+        batch_len = batch[next(k for k in batch if k != "type")].shape[0]
+        if batch_len < n_gpus:
+            continue
+
         batch = to_device(batch, device)
 
         # Phase progression within stage: perceptive → compositional → recursive
@@ -264,19 +285,19 @@ def main():
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
 
-        model.maybe_grow(step, float(out["loss_pred"].item()))
+        raw_model.maybe_grow(step, float(out["loss_pred"].item()))
         ckpt_mgr.record_loss(step, float(loss.item()))
 
         if step % cfg["log_every"] == 0:
-            n_active = int(model.node_bank.active.sum().item())
+            n_active = int(raw_model.node_bank.active.sum().item())
             print(
                 f"step={step} stage={stage} phase={phase} "
                 f"loss={loss.item():.4f} pred={out['loss_pred'].item():.4f} "
                 f"shape={out['loss_shape'].item():.4f} "
-                f"nodes={n_active}/{model.max_nodes} "
-                f"attractors={len(model.attractors)} "
-                f"goals={len(model.curiosity.goals)} "
-                f"motifs={len(model.motifs.motifs)}"
+                f"nodes={n_active}/{raw_model.max_nodes} "
+                f"attractors={len(raw_model.attractors)} "
+                f"goals={len(raw_model.curiosity.goals)} "
+                f"motifs={len(raw_model.motifs.motifs)}"
             )
 
         ckpt_mgr.maybe_save(step, cfg)

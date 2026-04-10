@@ -27,7 +27,7 @@ class WikitextDataset(Dataset):
     encoded as a grid for next-token prediction.
     """
 
-    def __init__(self, path: str, vocab_size: int = 512, grid_size: int = 8,
+    def __init__(self, path: str, vocab_size: int = 10, grid_size: int = 8,
                  stride: int = 32, max_samples: Optional[int] = None):
         self.vocab_size = vocab_size
         self.grid_size = grid_size

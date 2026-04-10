@@ -1,6 +1,6 @@
 {
   "seed": 42,
-  "device": "cpu",
+  "device": "cuda",
 
   "vsa_dim": 512,
   "max_nodes": 256,
@@ -15,7 +15,7 @@
   "grid_vocab": 10,
   "rel_vocab_size": 64,
   "node_hidden_dim": 256,
-  "batch_size": 16,
+  "batch_size": 32,
   "steps": 2000,
   "lr": 0.0001,
 
@@ -74,6 +74,10 @@
   "checkpoint_dir": "artifacts",
   "log_every": 10,
   "checkpoint_every": 50,
+  "stage": "D1",
+  "data_dir": "data",
+  "n_synthetic_samples": 5000,
+  "max_wikitext_samples": 50000,
   "train_mix": {
     "arc": 0.6,
     "graph": 0.4

@@ -99,14 +99,17 @@ def eval_vsa_binding(model, device, n_samples: int = 100) -> float:
             if int(idx.item()) == i:
                 correct += 1
     return correct / max(n, 1)
+
+
+def eval_attractor_separation(model) -> float:
     """L_attractor: MPF basins well-separated (low mean off-diagonal cosine)."""
-    cb = model.attractors.as_tensor()
+    cb = model.attractors.as_tensor(device=next(model.parameters()).device)
     if cb.size(0) < 2:
         return 1.0
     norm = F.normalize(cb, dim=-1)
     sim = torch.mm(norm, norm.t())
     n = cb.size(0)
-    mask = ~torch.eye(n, dtype=torch.bool)
+    mask = ~torch.eye(n, dtype=torch.bool, device=cb.device)
     return float(1.0 - sim[mask].mean().item())
 
 

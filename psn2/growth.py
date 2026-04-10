@@ -388,7 +388,7 @@ class GrowthLedger:
         self.i24_checks = [I24Check(**c) for c in state.get("i24_checks", [])]
         self._nodes_freed_by_motifs = state.get("nodes_freed_by_motifs", 0)
         # Fix #20: restore spawn-eligibility and stability state across sessions
-        self._error_persistence = state.get("error_persistence", {})
+        self._error_persistence = {int(k): v for k, v in state.get("error_persistence", {}).items()}
         # _pending_stability can't be fully restored (parent_nu tensors not serialized),
         # but we restore the birth_pulse so stability windows resume correctly
         raw_pending = state.get("pending_stability_pulses", {})

@@ -117,7 +117,13 @@ class PSN2LossFamily:
         gradient magnitude consistent across stage transitions.
         """
         active = active_losses(self.current_stage)
-        total = torch.tensor(0.0)
+        # Infer device from first available component tensor
+        device = None
+        for val in components.values():
+            if isinstance(val, torch.Tensor):
+                device = val.device
+                break
+        total = torch.tensor(0.0, device=device)
         for name, weight in active.items():
             val = components.get(name)
             if val is not None:

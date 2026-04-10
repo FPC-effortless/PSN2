@@ -171,7 +171,7 @@ class PhaseController:
                 active_mask = self.node_bank.active.bool()
                 if active_mask.any():
                     e = self.node_bank.e[active_mask].unsqueeze(1)
-                    delta = -LR_FF * e * (self.node_bank.nu[active_mask] - inp.unsqueeze(0))
+                    delta = -LR_FF * e * (self.node_bank.nu.data[active_mask] - inp.unsqueeze(0))
                     self.node_bank.nu.data[active_mask] += delta
         # For batched input (dim > 1): local update skipped — global AdamW handles it
 

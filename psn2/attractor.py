@@ -43,7 +43,7 @@ class AttractorLibrary:
         if not self.codebook:
             return torch.empty(0, self.dim, device=device)
         if self._cache is None or self._cache_dirty or self._cache.shape[0] != len(self.codebook):
-            self._cache = torch.stack([v for v in self.codebook], dim=0)
+            self._cache = torch.stack(list(self.codebook), dim=0)
             self._cache_dirty = False
         return self._cache.to(device) if device is not None else self._cache
 
@@ -78,11 +78,6 @@ class AttractorLibrary:
         self.utility = [self.utility[i] for i in order]
         self.entries = [self.entries[i] for i in order]
         self._invalidate_cache()
-
-    def as_tensor(self, device=None) -> torch.Tensor:
-        if not self.codebook:
-            return torch.empty(0, self.dim, device=device)
-        return torch.stack([v.to(device) for v in self.codebook], dim=0)
 
     def query(self, vec: torch.Tensor, k: int = 5) -> List[Tuple[float, torch.Tensor]]:
         """Cosine top-k retrieval."""

@@ -15,7 +15,7 @@ class PragmaticsRenderer(nn.Module):
         self.vocab_size = vocab_size
         # Context-aware re-ranking of token logits
         self.context_gate = nn.Sequential(
-            nn.Linear(dim * 2, dim),
+            nn.Linear(dim + vocab_size, dim),
             nn.ReLU(),
             nn.Linear(dim, vocab_size),
         )
@@ -28,7 +28,6 @@ class PragmaticsRenderer(nn.Module):
         """
         n_tokens = token_logits.size(0)
         ctx = shape_vec.unsqueeze(0).expand(n_tokens, -1)
-        # Combine shape context with token logits via a gate
-        combined = torch.cat([ctx, token_logits[..., :self.dim].clamp(-1, 1)], dim=-1)
+        combined = torch.cat([ctx, token_logits], dim=-1)
         gate = torch.sigmoid(self.context_gate(combined))
         return token_logits + gate * 0.1
