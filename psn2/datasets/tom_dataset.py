@@ -64,7 +64,10 @@ class ToMDataset(Dataset):
             relations.append([i, rel, i + 1])
 
         target_entity = _tok_hash(s["answer"], self.vocab_size)
-        target_relation = _tok_hash(s["question"], 32)
+        # target_relation: use a stable hash of the question category (first 3 words)
+        # rather than the full question string, to reduce target space fragmentation
+        q_key = " ".join(s["question"].split()[:3])
+        target_relation = _tok_hash(q_key, 32)
 
         return {
             "type": "graph",

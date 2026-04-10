@@ -62,9 +62,10 @@ class GSM8KDataset(Dataset):
         while len(entities) < self.num_entities:
             entities.append(0)
 
+        # Use word-pair hashes for relations, same as other graph datasets
         relations = []
         for i in range(self.num_entities - 1):
-            rel = _tok_hash(f"math_{i}", 32)
+            rel = _tok_hash(f"{entities[i]}-{entities[i+1]}", 32)
             relations.append([i, rel, i + 1])
 
         return {

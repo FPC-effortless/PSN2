@@ -27,13 +27,21 @@ class WikitextDataset(Dataset):
     encoded as a grid for next-token prediction.
     """
 
+    # Wikitext needs a much larger vocab than the 10-bucket grid_vocab to avoid
+    # extreme hash collisions that reduce the signal to noise. We use a fixed
+    # internal vocab of 4096 for hashing, then remap to grid_vocab at output so
+    # the tensor values stay within the model's grid_encoder embedding range.
+    _INTERNAL_VOCAB = 4096
+
     def __init__(self, path: str, vocab_size: int = 10, grid_size: int = 8,
                  stride: int = 32, max_samples: Optional[int] = None):
-        self.vocab_size = vocab_size
+        self.vocab_size = vocab_size          # model embedding range (grid_vocab)
         self.grid_size = grid_size
         self.window = grid_size * grid_size  # tokens per sample
 
-        # Build token list from all non-empty lines
+        # Build token list from all non-empty lines.
+        # Hash into _INTERNAL_VOCAB first for better word discrimination,
+        # then mod down to vocab_size when building tensors.
         tokens = []
         with open(path, encoding="utf-8") as f:
             for line in f:
@@ -41,7 +49,7 @@ class WikitextDataset(Dataset):
                 if not text:
                     continue
                 for word in text.split():
-                    tokens.append(_tok_hash(word, vocab_size))
+                    tokens.append(_tok_hash(word, self._INTERNAL_VOCAB))
 
         # Sliding window samples
         self.samples = []
@@ -60,9 +68,12 @@ class WikitextDataset(Dataset):
 
     def __getitem__(self, idx):
         window = self.samples[idx]
-        inp = torch.tensor(window[:self.window], dtype=torch.long).reshape(
+        # Remap internal vocab tokens to model's grid_vocab range
+        inp_tok = [t % self.vocab_size for t in window[:self.window]]
+        tgt_tok = [t % self.vocab_size for t in window[1:self.window + 1]]
+        inp = torch.tensor(inp_tok, dtype=torch.long).reshape(
             self.grid_size, self.grid_size)
-        tgt = torch.tensor(window[1:self.window + 1], dtype=torch.long).reshape(
+        tgt = torch.tensor(tgt_tok, dtype=torch.long).reshape(
             self.grid_size, self.grid_size)
         return {
             "type": "arc",

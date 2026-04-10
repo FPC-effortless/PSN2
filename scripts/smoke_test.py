@@ -40,7 +40,7 @@ tests = []
 
 arc2_path = f"{data_dir}/d5_arc_agi2/train.jsonl"
 if os.path.exists(arc2_path):
-    ds = ARCAGI2Dataset(arc2_path, max_grid_size=8, max_samples=20)
+    ds = ARCAGI2Dataset(arc2_path, max_samples=20)  # uses natural 30x30 max
     tests.append(("ARCAGI2Dataset (D1/D5)", ds))
 
 tom_path = f"{data_dir}/d3_tom/train.jsonl"

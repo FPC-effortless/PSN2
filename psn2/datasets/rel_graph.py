@@ -22,8 +22,10 @@ def _make_graph(vocab_size: int = 64, num_entities: int = 6):
     target_relation = relations[masked_relation_idx][1]
 
     entities_masked = entities[:]
-    # Use 0 instead of -1 as mask token to avoid invalid embedding indices
-    entities_masked[masked_entity_idx] = 0
+    # Use vocab_size-1 as a dedicated mask token, distinct from any real entity.
+    # Using 0 collides with valid entity index 0, making the task unsolvable.
+    mask_token = vocab_size - 1
+    entities_masked[masked_entity_idx] = mask_token
 
     relations_masked = list(relations)
     # Use 0 instead of -1 for masked relation type to avoid invalid embedding indices

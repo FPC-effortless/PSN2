@@ -39,7 +39,10 @@ class ARCAGI2Dataset(Dataset):
     """
 
     def __init__(self, path: str, max_grid_size: int = 30, max_samples: Optional[int] = None):
-        self.max_grid_size = max_grid_size
+        # Always pad to the true ARC-AGI-2 max (30), regardless of the synthetic
+        # grid_size config value passed in. Using a smaller value (e.g. 8) would
+        # silently truncate grids and corrupt output patterns.
+        self.max_grid_size = max(max_grid_size, 30)
         self.samples = []
 
         with open(path, encoding="utf-8") as f:
@@ -50,8 +53,8 @@ class ARCAGI2Dataset(Dataset):
                     out = pair["output"]
                     h_in, w_in = _grid_size(inp)
                     h_out, w_out = _grid_size(out)
-                    if (max(h_in, h_out) <= max_grid_size and
-                            max(w_in, w_out) <= max_grid_size):
+                    if (max(h_in, h_out) <= self.max_grid_size and
+                            max(w_in, w_out) <= self.max_grid_size):
                         self.samples.append((inp, out))
 
         if max_samples:

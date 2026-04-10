@@ -17,10 +17,6 @@ def _tok_hash(s: str, vocab: int) -> int:
     return (hash(s) & 0x7FFFFFFF) % vocab
 
 
-# Map common string targets to small integers
-_BOOL_MAP = {"True": 1, "False": 0, "true": 1, "false": 0}
-
-
 class BBHDataset(Dataset):
     """BIG-Bench Hard — all 27 tasks merged."""
 
@@ -35,12 +31,10 @@ class BBHDataset(Dataset):
                 obj = json.loads(line)
                 if task_filter and obj.get("task") != task_filter:
                     continue
-                target_str = str(obj.get("target", ""))
-                # Map to integer target
-                if target_str in _BOOL_MAP:
-                    target = _BOOL_MAP[target_str]
-                else:
-                    target = _tok_hash(target_str, vocab_size)
+                target_str = str(obj.get("target", "")).strip()
+                # Hash all targets uniformly — avoids boolean 0/1 colliding with
+                # other hashed targets in the same vocab space
+                target = _tok_hash(target_str, vocab_size)
                 self.samples.append({
                     "task": obj.get("task", "bbh"),
                     "input": str(obj.get("input", "")),
@@ -61,16 +55,17 @@ class BBHDataset(Dataset):
         while len(entities) < self.num_entities:
             entities.append(0)
 
+        # Use word-pair hashes for relations, same as other graph datasets
         relations = []
         for i in range(self.num_entities - 1):
-            rel = _tok_hash(f"{s['task']}_{i}", 32)
+            rel = _tok_hash(f"{entities[i]}-{entities[i+1]}", 32)
             relations.append([i, rel, i + 1])
 
         return {
             "type": "graph",
             "entities": torch.tensor(entities, dtype=torch.long),
             "relations": torch.tensor(relations, dtype=torch.long),
-            "target_entity": torch.tensor(s["target"] % self.vocab_size, dtype=torch.long),
+            "target_entity": torch.tensor(s["target"], dtype=torch.long),
             "target_relation": torch.tensor(0, dtype=torch.long),
             "mask_entity": torch.tensor(0, dtype=torch.long),
             "mask_relation": torch.tensor(0, dtype=torch.long),
