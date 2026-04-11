@@ -76,4 +76,6 @@ class GSM8KDataset(Dataset):
             "target_relation": torch.tensor(0, dtype=torch.long),
             "mask_entity": torch.tensor(0, dtype=torch.long),
             "mask_relation": torch.tensor(0, dtype=torch.long),
+            "masked_entity_idx": torch.tensor(0, dtype=torch.long),
+            "masked_relation_idx": torch.tensor(0, dtype=torch.long),
         }

@@ -158,6 +158,28 @@ class PhaseController:
         """Bond update via VSA bind mechanics + local W_ff/W_fb weight update (PRD Section 4.3)."""
         if self.bond_system is not None:
             self.bond_system.pulse_decay()
+            
+            # Fix: Form bonds between active nodes during compositional/recursive regimes
+            if self.active_regime in ["compositional", "recursive"]:
+                active_mask = self.node_bank.active.bool()
+                active_indices = torch.where(active_mask)[0]
+                if len(active_indices) >= 2:
+                    # Form bonds between pairs of active nodes
+                    # Use causal bonds for compositional, temporal for recursive
+                    bond_type = "temporal" if self.active_regime == "recursive" else "causal"
+                    shape_type = self.active_regime
+                    
+                    # Form bonds between adjacent active nodes
+                    with torch.no_grad():
+                        for i in range(min(3, len(active_indices) - 1)):  # Limit to 3 bonds per pulse
+                            src_idx = int(active_indices[i].item())
+                            tgt_idx = int(active_indices[i + 1].item())
+                            src_vec = self.node_bank.nu[src_idx]
+                            tgt_vec = self.node_bank.nu[tgt_idx]
+                            self.bond_system.form_bond(
+                                bond_type, src_idx, tgt_idx,
+                                src_vec, tgt_vec, shape_type
+                            )
 
         # Local weight update: W_ff and W_fb via prediction-error rule
         # lr_ff = lr_fb = 1e-4 (PRD frozen constant)

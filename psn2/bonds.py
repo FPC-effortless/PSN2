@@ -129,7 +129,7 @@ class BondSystem:
         unbound = bond.bond_vector * tgt_norm
         recovered = PermutationIndex.invert(unbound, type_id)
         idx, vec, sim = cleanup(recovered, codebook)
-        return int(idx), vec, float(sim)
+        return int(idx.detach()), vec, float(sim.detach() if isinstance(sim, torch.Tensor) else sim)
 
     def pulse_decay(self):
         """Decay all bond strengths; remove dead bonds."""

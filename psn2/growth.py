@@ -214,19 +214,29 @@ class GrowthLedger:
                              activation_history: Optional[torch.Tensor] = None) -> float:
         """
         prune_score = (1 - mean_activation) * (1 - mean_bond_strength) * sigmoid(age - tau_age_prune)
-        Age comes from node_bank.growth_state[node_id, 3] maintained by increment_age().
+
+        Activation proxy: LOW error = low activity = prune candidate.
+        A node with e≈0 is silent and not contributing.
+        A node with high e is actively predicting (keep it).
         """
-        a = float(node_bank.e[node_id].item())
-        mean_act = 1.0 - min(1.0, a)
-        mean_bond = float(node_bank.tau[node_id].item())
-        # Fix #1: read actual age from growth_state[:,3]
+        # Low error → low activity → high prune pressure (inverted from e)
+        e_val = float(node_bank.e[node_id].item())
+        # Normalize error to [0,1]: nodes with e < 0.1 are considered silent
+        activity = min(1.0, e_val / 0.5)   # 0 = silent, 1 = very active
+        inactivity = 1.0 - activity         # high = silent = prune candidate
+
+        # tau is temporal trace: low tau = node hasn't been active recently
+        tau_val = float(node_bank.tau[node_id].item())
+        low_persistence = 1.0 - min(1.0, tau_val / 5.0)  # 0 = persistent, 1 = ephemeral
+
+        # Age gate: only prune nodes that have existed long enough
         if hasattr(node_bank, "growth_state"):
             age = float(node_bank.growth_state[node_id, 3].item())
         else:
             age = 0.0
-        score = (1.0 - mean_act) * (1.0 - min(1.0, mean_bond))
         age_factor = float(torch.sigmoid(torch.tensor(age - TAU_AGE_PRUNE)).item())
-        return float(score * age_factor)
+
+        return float(inactivity * low_persistence * age_factor)
 
     def maybe_prune_nodes(self, node_bank: "NodeBank", step: int) -> List[int]:
         """Prune nodes with prune_score > tau_prune."""

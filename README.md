@@ -1,103 +1,217 @@
-# PSN-2 — Predictive Substrate Network Generation 2
+# PSN-2: Perceptual-Symbolic Network v2
 
-Unified cognitive architecture implementing the PSN-2 PRD v1.0.
-Designed to train across constrained Kaggle sessions (T4/P100) with checkpoint-driven growth.
+A developmental cognitive architecture implementing staged learning from sensorimotor grounding through abstract reasoning.
 
-## Architecture
-
-- **VSA substrate** — bind/bundle/cleanup hypervector algebra (D=512 Lite)
-- **Spiking Computation Engine (SCE)** — event-driven sparse inference
-- **6-phase pulse cycle** — A (evidence) → B (bonds) → C (emotion) → D (shape) → E (verify) → F (commit)
-- **Substrate Growth Protocol (SGP)** — spawn/prune/merge/expand with I-24 enforcement
-- **Experience Replay Substrate (ERS)** — 4-tier VSA memory
-- **Curiosity Engine (CE)** — goal-directed exploration with flood protection
-- **Unified Shape Language (USL)** — language as native VSA shapes
-- **Emotional Shape System (ESS)** — emotion as first-class shapes
-- **Temporal Abstraction Engine (TAE)** — motif compression
-- **Social Learning System (SLS)** — trace reconstruction
-- **Developmental Curriculum (DC)** — D1→D6 gated stages
-
-## Training Data (collected in `data/`)
-
-| Stage | Dataset | Samples | Purpose |
-|-------|---------|---------|---------|
-| D1/D2/D5 | ARC-AGI-2 (`d5_arc_agi2/`) | 1,000 tasks | Spatial/causal grounding |
-| D3 | ToM (`d3_tom/`) | 13,309 | Theory-of-mind |
-| D3 | ToMi (`d3_tomi/`) | 5,994 | False-belief NLI |
-| D4 | Wikitext (`d4_wikitext/`) | 1.8M lines | Linguistic grounding |
-| D5 | GSM8K (`d5_gsm8k/`) | 7,473 | Math reasoning |
-| D6 | BIG-Bench Hard (`d6_bbh/`) | 6,511 | Abstract reasoning |
-
-## Local Training
+## 🚀 Quick Start (Kaggle)
 
 ```bash
-pip install -r requirements.txt
-
-# D1 training (ARC-AGI-2 + synthetic graphs)
-python train.py --config configs/default.json
-
-# Resume from checkpoint
-python train.py --config configs/default.json --resume artifacts/latest.pt
-
-# Evaluate
-python evaluate.py --config configs/default.json --checkpoint artifacts/latest.pt
+# Sequential training D1 → D6 (recommended)
+python train_sequential.py \
+  --config configs/default.json \
+  --checkpoint-dir /kaggle/working/artifacts \
+  --start-stage D1 \
+  --end-stage D6
 ```
 
-## Kaggle Training
+## 📋 What's New
 
-### Package the repo (run once locally)
+**Latest Update**: Fixed D1 gate failure by implementing batch-type-aware phase selection
+- Graph batches now always use `compositional` phase (was incorrectly using `perceptive`)
+- Expected improvement: Relation prediction from 1.5% → >80%
+- See `docs/guides/FIX_COMPLETE.md` for details
+
+## 🏗️ Architecture Overview
+
+PSN-2 implements a biologically-inspired cognitive architecture with:
+
+- **Vector Symbolic Architectures (VSA)**: High-dimensional distributed representations
+- **Attractor Dynamics**: Stable pattern completion and memory retrieval
+- **Episodic Replay System (ERS)**: Multi-tier memory with utility-based consolidation
+- **Developmental Stages**: Progressive capability emergence (D1-D6)
+- **Phase-Based Processing**: Perceptive → Compositional → Recursive
+
+## 📊 Developmental Stages
+
+| Stage | Focus | Steps | Primary Dataset | Key Gates |
+|-------|-------|-------|----------------|-----------|
+| **D1** | Sensorimotor Grounding | 20K | ARC-AGI-2 (60%) + Graphs (40%) | Object tracking ≥90%, Causal error <20% |
+| **D2** | Causal Reasoning | 20K | ARC-AGI-2 (60%) + Graphs (40%) | Causal intervention, Analogies |
+| **D3** | Theory of Mind | 15K | ToM/ToMi (60%) + Graphs (40%) | Goal inference, False belief |
+| **D4** | Language Grounding | 25K | Wikitext (60%) + ARC (40%) | Linguistic fidelity, Grounding |
+| **D5** | Transfer Learning | 30K | GSM8K (60%) + ARC (40%) | Transfer, Meta-learning |
+| **D6** | Full Integration | 40K | BBH (60%) + Mixed (40%) | Full system integration |
+
+**Total**: 150,000 steps (~15 hours on 2x GPU)
+
+## 📁 Project Structure
+
+```
+psn2_kaggle_full_repo/
+├── psn2/                    # Core architecture
+│   ├── core.py              # Main PSN2System
+│   ├── dc/                  # Developmental Curriculum (D1-D6)
+│   ├── ce/                  # Curiosity Engine
+│   ├── tae/                 # Temporal Abstraction Engine
+│   ├── usl/                 # Universal Symbolic Language
+│   └── ess/                 # Emotional Shape System
+├── train.py                 # Single-stage training
+├── train_sequential.py      # Sequential D1-D6 training
+├── evaluate.py              # Evaluation & gate checking
+├── configs/                 # Configuration files
+├── data/                    # Training datasets
+├── scripts/                 # Utility scripts
+└── docs/                    # Documentation
+    ├── guides/              # Training guides
+    └── archive/             # Historical docs
+```
+
+## 🎯 Training Commands
+
+### Full Sequential Training
 ```bash
-python scripts/package_kaggle.py
-# → psn2_kaggle_full.zip (~4MB, wikitext excluded)
+python train_sequential.py \
+  --config configs/default.json \
+  --checkpoint-dir /kaggle/working/artifacts \
+  --start-stage D1 \
+  --end-stage D6
 ```
 
-### One-time Kaggle setup
-1. [kaggle.com/datasets](https://kaggle.com/datasets) → **New Dataset** → upload `psn2_kaggle_full.zip` → name it `psn2-kaggle`
-2. **Account → Settings → API → Create New Token** → download `kaggle.json`
-3. In your notebook: **Add-ons → Secrets** → add `KAGGLE_USERNAME` and `KAGGLE_KEY`
-4. Create a **Notebook** → attach `psn2-kaggle` → **Settings → Accelerator → GPU T4 x2**
-5. Upload `kaggle_train.ipynb`, set `STAGE = 'D1'`, run all cells
-
-### Subsequent sessions — fully automatic
-- The notebook pushes `latest.pt` to a `psn2-checkpoint` Kaggle dataset at session end
-- On crash or error it pushes immediately via an exit handler
-- Next session: attach both `psn2-kaggle` and `psn2-checkpoint` → run all cells → auto-resumes
-- No manual download/upload needed
-
-### Session plan (PRD Section 17.3)
-
-| Session | Stage | Steps | Data |
-|---------|-------|-------|------|
-| 1–2 | D1 | 20,000 | ARC-AGI-2 + synthetic graphs |
-| 3–4 | D2 | 20,000 | ARC-AGI-2 causal + synthetic |
-| 5 | D3 | 15,000 | ToM + ToMi |
-| 6–7 | D4 | 25,000 | Wikitext + ARC-AGI-2 |
-| 8–9 | D5 | 30,000 | ARC-AGI-2 + GSM8K |
-| 10+ | D6 | 40,000 | All data + BBH |
-
-### Wikitext (D4)
-Wikitext is 550MB — excluded from the main zip. Upload `data/d4_wikitext/` as a separate Kaggle dataset and attach it. Without it, D4 falls back to synthetic ARC data.
-
-## Tests
-
+### Resume from Checkpoint
 ```bash
-python -m pytest tests/ -q
+python train_sequential.py \
+  --config configs/default.json \
+  --checkpoint-dir /kaggle/working/artifacts \
+  --start-stage D1 \
+  --resume /kaggle/working/artifacts/latest.pt
 ```
 
-37 tests covering: ERS tiers, phase cycle, growth/prune/merge, VSA cosine, bonds, attractor cache, forward pass, checkpoint round-trip.
+### Skip Gate Checks (Not Recommended)
+```bash
+python train_sequential.py \
+  --config configs/default.json \
+  --checkpoint-dir /kaggle/working/artifacts \
+  --start-stage D1 \
+  --skip-gate-check
+```
 
-## Config
+### Single Stage Training
+```bash
+python train.py \
+  --config configs/default.json \
+  --stage D1 \
+  --steps 20000 \
+  --checkpoint-dir /kaggle/working/artifacts
+```
 
-All PRD-frozen constants are in `configs/default.json`. Key Kaggle settings:
+## 📈 Monitoring Training
 
+Watch for these indicators:
+```
+step=X stage=D1 phase=compositional loss=Y pred=Z nodes=256/256 attractors=N goals=M
+```
+
+- **Phase**: Should match batch type (graph→compositional, arc→perceptive)
+- **Loss**: Should decrease steadily
+- **Attractors**: Should grow over time
+- **Goals**: Curiosity-driven exploration targets
+
+## ✅ Gate Certification
+
+Each stage must pass gates before progressing:
+
+**D1 Gates:**
+- Object tracking accuracy ≥ 90%
+- Causal prediction error < 20%
+- Temporal trace persistence > 5 pulses
+- VSA binding accuracy > 90%
+
+**D2-D6 Gates:** See `docs/guides/` for details
+
+## 🔧 Configuration
+
+Key settings in `configs/default.json`:
 ```json
 {
-  "vsa_dim": 512,
-  "max_nodes": 256,
-  "B_max": 32,
-  "stage": "D1",
-  "data_dir": "data",
-  "batch_size": 16,
-  "steps": 2000
+  "vsa_dim": 512,           # VSA dimensionality
+  "max_nodes": 256,         # Maximum network nodes
+  "batch_size": 32,         # Training batch size
+  "lr": 0.0003,             # Learning rate
+  "grid_size": 8,           # ARC grid size
+  "grid_vocab": 10,         # Grid vocabulary size
+  "rel_vocab_size": 64      # Relational vocabulary size
 }
 ```
+
+## 📚 Documentation
+
+- **Training Guide**: `docs/guides/RETRAIN_GUIDE.md`
+- **Phase Fix Details**: `docs/guides/FIX_COMPLETE.md`
+- **Kaggle Setup**: `docs/guides/KAGGLE_GUIDE.md`
+- **Technical Specs**: `PRD.md`
+
+## 🧪 Testing
+
+```bash
+# Test phase selection logic
+python scripts/test_phase_selection.py
+
+# Analyze phase usage
+python scripts/analyze_phase_usage.py
+
+# Test all datasets
+python scripts/test_datasets.py
+```
+
+## 📦 Requirements
+
+```
+torch>=2.0.0
+tqdm
+```
+
+Install on Kaggle:
+```bash
+pip install torch tqdm
+```
+
+## 🎓 Key Concepts
+
+### Phase-Based Processing
+- **Perceptive**: Spatial pattern recognition (ARC grids)
+- **Compositional**: Relational reasoning (graphs, ToM)
+- **Recursive**: Sequential reasoning (language, math)
+
+### Vector Symbolic Architectures
+- High-dimensional (512D) distributed representations
+- Binding/unbinding operations for structured knowledge
+- Permutation-based role encoding
+
+### Attractor Dynamics
+- Mean-field potential (MPF) basins for stable memories
+- Separation-based organization
+- Pattern completion and retrieval
+
+## 🐛 Troubleshooting
+
+**D1 gates failing?**
+- Check relation prediction (should be >80%, not 1.5%)
+- Verify graph batches use `compositional` phase
+- See `docs/guides/FIX_COMPLETE.md`
+
+**Training too slow?**
+- Reduce `batch_size` in config
+- Set `max_arc2_samples` to limit dataset size
+- Use fewer stages: `--end-stage D3`
+
+**Out of memory?**
+- Reduce `vsa_dim` to 256
+- Reduce `max_nodes` to 128
+- Reduce `batch_size` to 16
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🙏 Acknowledgments
+
+Built for the ARC-AGI Kaggle competition. Implements concepts from cognitive science, neuroscience, and developmental psychology.

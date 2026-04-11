@@ -42,7 +42,12 @@ def collate(batch):
     for k in batch[0].keys():
         if k == "type":
             continue
-        out[k] = torch.stack([item[k] for item in batch], dim=0)
+        tensors = [item[k] for item in batch]
+        # Handle scalar tensors (0-dim) by unsqueezing before stack
+        if tensors[0].dim() == 0:
+            out[k] = torch.stack([t.unsqueeze(0) for t in tensors], dim=0).squeeze(-1)
+        else:
+            out[k] = torch.stack(tensors, dim=0)
     return out
 
 
@@ -270,14 +275,35 @@ def main():
 
         batch = to_device(batch, device)
 
-        # Phase progression within stage: perceptive → compositional → recursive
+        # Phase selection: batch-type-aware for optimal learning
+        # - Graph/relational tasks → compositional (relational reasoning)
+        # - ARC/grid tasks → perceptive (spatial pattern recognition)
+        # - Language tasks (D4+) → recursive (sequential reasoning)
+        batch_type = batch.get("type", "arc")
         frac = (step - start_step) / max(steps - start_step, 1)
-        if frac < 0.33:
-            phase = "perceptive"
-        elif frac < 0.66:
+        
+        if batch_type == "graph":
+            # Graph tasks (including ToM, GSM8K, BBH) use compositional phase
+            # for relational and causal reasoning
             phase = "compositional"
+        elif batch_type == "arc":
+            # ARC/grid tasks: progress through phases based on stage
+            # D1-D3: focus on perceptive and compositional
+            # D4+: add recursive for language grids (Wikitext)
+            if stage in ["D4", "D5", "D6"]:
+                # Language stages: progress compositional → recursive
+                phase = "recursive" if frac > 0.5 else "compositional"
+            else:
+                # Spatial reasoning stages: perceptive → compositional
+                phase = "compositional" if frac > 0.5 else "perceptive"
         else:
-            phase = "recursive"
+            # Fallback: time-based progression
+            if frac < 0.33:
+                phase = "perceptive"
+            elif frac < 0.66:
+                phase = "compositional"
+            else:
+                phase = "recursive"
 
         out = raw_model.forward_batch(batch, phase=phase)
         loss = out["loss"]

@@ -73,7 +73,7 @@
 
   "checkpoint_dir": "artifacts",
   "log_every": 10,
-  "checkpoint_every": 50,
+  "checkpoint_every": 1000,
   "stage": "D1",
   "data_dir": "data",
   "n_synthetic_samples": 5000,

@@ -88,7 +88,8 @@ class PSN2System(nn.Module):
         # Graph encoder/decoder
         self.entity_encoder   = nn.Embedding(rel_vocab, dim)
         self.relation_encoder = nn.Embedding(32, dim)
-        self.entity_decoder   = nn.Linear(dim, rel_vocab)
+        # Fix: entity decoder needs to attend to masked position
+        self.entity_decoder   = nn.Linear(dim * 2, rel_vocab)  # concat shape + masked entity embedding
         # GAP 3g: relation_decoder was missing
         self.relation_decoder = nn.Linear(dim, 32)
 
@@ -248,6 +249,9 @@ class PSN2System(nn.Module):
             relations = batch["relations"]
             target_entity = batch["target_entity"]
             target_relation = batch["target_relation"]
+            
+            # Fix: Get masked position information
+            masked_entity_idx = batch.get("masked_entity_idx", torch.zeros_like(target_entity))
 
             shape = self.encode_graph(entities, relations)
             committed_shape = controller.run_pulse(external_input=shape)
@@ -261,8 +265,35 @@ class PSN2System(nn.Module):
 
             budget_fraction = controller.budget_fraction_used
             node_repr = self._node_repr(active_shape)
-            entity_logits = self.entity_decoder(node_repr)
-            relation_logits = self.relation_decoder(node_repr)
+            
+            # Fix: For entity prediction, concatenate the masked entity embedding
+            # This gives the decoder context about which entity slot to fill
+            B = entities.shape[0]
+            masked_entity_embs = []
+            for i in range(B):
+                idx = int(masked_entity_idx[i].item())
+                masked_entity_embs.append(self.entity_encoder(entities[i, idx]))
+            masked_entity_emb = torch.stack(masked_entity_embs, dim=0)  # [B, D]
+            
+            # Concatenate node representation with masked entity embedding
+            entity_input = torch.cat([node_repr, masked_entity_emb], dim=-1)  # [B, 2D]
+            entity_logits = self.entity_decoder(entity_input)
+            
+            # Fix: Use bond information for relation prediction
+            # If bonds exist, use them to inform relation prediction
+            relation_input = node_repr
+            if len(self.bond_system.bonds) > 0:
+                # Get bond vectors from active bonds
+                bond_vecs = []
+                for bond in self.bond_system.bonds[:5]:  # Use up to 5 most recent bonds
+                    if bond.strength > 0.1:
+                        bond_vecs.append(bond.bond_vector * bond.strength)
+                if bond_vecs:
+                    bond_bundle = normalize(torch.stack(bond_vecs).mean(dim=0))
+                    # Add bond information to relation prediction
+                    relation_input = normalize(node_repr + 0.5 * bond_bundle.unsqueeze(0).expand_as(node_repr))
+            
+            relation_logits = self.relation_decoder(relation_input)
 
             loss_entity = F.cross_entropy(entity_logits, target_entity)
             loss_relation = F.cross_entropy(relation_logits, target_relation)
@@ -277,11 +308,26 @@ class PSN2System(nn.Module):
             loss_shape = 1.0 - F.cosine_similarity(
                 active_shape, target_shape, dim=-1
             ).mean()
+            
+            # Fix: Add bond loss to encourage bond formation and accuracy
+            loss_bond = torch.tensor(0.0, device=device)
+            if len(self.bond_system.bonds) > 0:
+                # Encourage bonds to be well-formed: check if we can recover source from target
+                for bond in self.bond_system.bonds[:3]:
+                    if bond.strength > 0.1:
+                        src_vec = self.node_bank.nu[bond.source_id]
+                        tgt_vec = self.node_bank.nu[bond.target_id]
+                        recovered_idx, recovered_vec, sim = self.bond_system.recover_source(
+                            bond, tgt_vec, self.attractors.as_tensor(device=device)
+                        )
+                        # Loss is 1 - similarity (want high similarity)
+                        loss_bond = loss_bond + (1.0 - sim)
+                loss_bond = loss_bond / min(3, len(self.bond_system.bonds))
 
             spike_mask = self.node_bank.spike_mask(phase, budget_fraction_used=budget_fraction)
             loss_spike = spike_mask.mean()
 
-            loss = loss_entity + loss_relation + 0.1 * loss_shape + 0.01 * loss_spike
+            loss = loss_entity + loss_relation + 0.1 * loss_shape + 0.05 * loss_bond + 0.01 * loss_spike
 
             # Add pulse_error_loss from controller
             if controller.pulse_error_loss is not None:
@@ -312,9 +358,9 @@ class PSN2System(nn.Module):
         # Operation 1: spawn
         self.growth.maybe_spawn_node(self.node_bank, global_step, self.attractors)
 
-        # Fix #2: Operations 2, 3, 4 — previously dead code, now called
-        # Prune every 10 steps (expensive O(N) scan)
-        if global_step % 10 == 0:
+        # Fix #2: Operations 2, 3, 4 — prune/merge every 500 steps (not 10)
+        # Running every 10 steps caused catastrophic node collapse
+        if global_step % 500 == 0 and global_step > 0:
             self.growth.maybe_prune_nodes(self.node_bank, global_step)
             self.growth.maybe_merge_nodes(self.node_bank, global_step)
 

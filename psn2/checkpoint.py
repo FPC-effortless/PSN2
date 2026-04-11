@@ -127,10 +127,24 @@ class CheckpointManager:
 
     def save(self, step: int, config: dict = None, tag: str = "step"):
         payload = self._build_payload(step, config)
-        # Always overwrite latest
+        # Always overwrite latest — this is the only file that grows unboundedly
         save_checkpoint(str(self.checkpoint_dir / "latest.pt"), payload)
-        # Also save tagged version
-        save_checkpoint(str(self.checkpoint_dir / f"{tag}_{step}.pt"), payload)
+        # For periodic saves, keep only the last 2 (safety net for corruption)
+        if tag == "periodic":
+            tagged_path = self.checkpoint_dir / f"periodic_{step}.pt"
+            save_checkpoint(str(tagged_path), payload)
+            # Delete older periodic checkpoints, keep only the 2 most recent
+            old_periodics = sorted(self.checkpoint_dir.glob("periodic_*.pt"),
+                                   key=lambda p: p.stat().st_mtime)
+            for old in old_periodics[:-2]:
+                try:
+                    old.unlink()
+                except OSError:
+                    pass
+        # For step saves (checkpoint_every), only update latest — no extra file
+        # For final saves, write a single final.pt
+        elif tag == "final":
+            save_checkpoint(str(self.checkpoint_dir / "final.pt"), payload)
 
     def save_final(self, step: int, config: dict = None):
         """Save at session end."""
