@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "security-scanner"
+version = "0.1.0"
+description = "Automated security vulnerability detection for Python ML codebases"
+requires-python = ">=3.8"
+dependencies = [
+    "nbformat>=5.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "hypothesis>=6.0",
+]
+
+[project.scripts]
+security-scan = "security_scanner.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["security_scanner*"]

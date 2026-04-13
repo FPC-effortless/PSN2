@@ -1,4 +1,4 @@
-torch>=2.1
-numpy>=1.24
-tqdm>=4.66
+pytest>=7.4.0
+hypothesis>=6.82.0
+nbformat>=5.9.0
 pyyaml>=6.0
