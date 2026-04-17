@@ -84,7 +84,9 @@ class Bond:
 class BondSystem:
     """Manages typed VSA bonds between nodes."""
 
-    LAMBDA_BOND = 0.90
+    # Fix 3.8: Reduce bond decay from 0.90 to 0.95 (5% decay instead of 10%)
+    # This gives bonds more persistence to be utilized before decaying
+    LAMBDA_BOND = 0.95
 
     def __init__(self, dim: int):
         self.dim = dim

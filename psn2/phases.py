@@ -164,27 +164,54 @@ class PhaseController:
         if self.bond_system is not None:
             self.bond_system.pulse_decay()
             
-            # Fix: Form bonds between active nodes during compositional/recursive regimes
+            # Fix 3.7: Ensure bond formation reliability during compositional/recursive regimes
+            # Form bonds between active nodes with improved activation detection
             if self.active_regime in ["compositional", "recursive"]:
-                active_mask = self.node_bank.active.bool()
+                # Fix 3.7: Initialize tracking counters for all compositional pulses
+                if not hasattr(self, '_bond_formation_count'):
+                    self._bond_formation_count = 0
+                    self._total_pulses = 0
+                self._total_pulses += 1  # Count every compositional pulse
+
+                # Fix 3.7: Use spike mask to determine which nodes are active
+                # Nodes that spike (high error/tau) are considered active for bond formation
+                from psn2.sce import SpikeGate
+                tau_thresh = SpikeGate().threshold(self.active_regime, self.budget_fraction_used)
+                spike_mask = (self.node_bank.e > tau_thresh).float() * self.node_bank.active
+                active_mask = spike_mask.bool()
                 active_indices = torch.where(active_mask)[0]
-                if len(active_indices) >= 2:
-                    # Form bonds between pairs of active nodes
-                    # Use causal bonds for compositional, temporal for recursive
-                    bond_type = "temporal" if self.active_regime == "recursive" else "causal"
-                    shape_type = self.active_regime
-                    
-                    # Form bonds between adjacent active nodes
-                    with torch.no_grad():
-                        for i in range(min(3, len(active_indices) - 1)):  # Limit to 3 bonds per pulse
-                            src_idx = int(active_indices[i].item())
-                            tgt_idx = int(active_indices[i + 1].item())
-                            src_vec = self.node_bank.nu[src_idx]
-                            tgt_vec = self.node_bank.nu[tgt_idx]
-                            self.bond_system.form_bond(
-                                bond_type, src_idx, tgt_idx,
-                                src_vec, tgt_vec, shape_type
-                            )
+
+                # Fix 3.7: Ensure at least 2 nodes are available for bond formation.
+                # Early in training, activation may be sparse (few nodes exceed threshold).
+                # Fall back to top-2 nodes by error value to guarantee bond formation.
+                if len(active_indices) < 2:
+                    # Select top-2 active nodes by error magnitude as fallback
+                    active_errors = self.node_bank.e * self.node_bank.active
+                    top2 = torch.topk(active_errors, k=min(2, self.node_bank.num_nodes)).indices
+                    active_indices = top2
+
+                # Form bonds between pairs of active nodes
+                # Use causal bonds for compositional, temporal for recursive
+                bond_type = "temporal" if self.active_regime == "recursive" else "causal"
+                shape_type = self.active_regime
+
+                # Form bonds between adjacent active nodes
+                with torch.no_grad():
+                    bonds_formed = 0
+                    for i in range(min(3, len(active_indices) - 1)):  # Limit to 3 bonds per pulse
+                        src_idx = int(active_indices[i].item())
+                        tgt_idx = int(active_indices[i + 1].item())
+                        src_vec = self.node_bank.nu[src_idx]
+                        tgt_vec = self.node_bank.nu[tgt_idx]
+                        bond = self.bond_system.form_bond(
+                            bond_type, src_idx, tgt_idx,
+                            src_vec, tgt_vec, shape_type
+                        )
+                        if bond is not None:
+                            bonds_formed += 1
+
+                    # Fix 3.7: Track bond formation frequency for diagnostics
+                    self._bond_formation_count += (1 if bonds_formed > 0 else 0)
 
         # Local weight update: W_ff and W_fb via prediction-error rule
         # lr_ff = lr_fb = 1e-4 (PRD frozen constant)
@@ -204,6 +231,19 @@ class PhaseController:
                         e = self.node_bank.e[active_mask].unsqueeze(1)  # [N_active, 1]
                         delta = -LR_FF * e * (self.node_bank.nu.data[active_mask] - sample.unsqueeze(0))
                         self.node_bank.nu.data[active_mask] += delta / inp.size(0)  # Average over batch
+
+    def get_bond_formation_stats(self) -> dict:
+        """
+        Get bond formation statistics for monitoring.
+        Returns dict with bond_formation_count and total_pulses.
+        """
+        if hasattr(self, '_bond_formation_count'):
+            return {
+                'bond_formation_count': self._bond_formation_count,
+                'total_pulses': self._total_pulses,
+                'bond_formation_rate': self._bond_formation_count / max(self._total_pulses, 1),
+            }
+        return {'bond_formation_count': 0, 'total_pulses': 0, 'bond_formation_rate': 0.0}
 
     @property
     def _sym_score(self) -> float:

@@ -315,6 +315,15 @@ def main():
         opt.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+        # Fix 3.6: Log gradient norms every 100 steps for graph batches
+        # Helps diagnose vanishing/exploding gradients in entity/relation encoders
+        if batch_type == "graph" and getattr(raw_model, "_should_log_gradients", False):
+            grad_norms = raw_model.log_gradient_norms()
+            if grad_norms:
+                norm_str = " ".join(f"{k}={v:.4f}" for k, v in grad_norms.items())
+                print(f"  [grad_norms step={step}] {norm_str}")
+
         opt.step()
 
         raw_model.maybe_grow(step, float(out["loss_pred"].item()))

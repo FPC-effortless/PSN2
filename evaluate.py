@@ -142,7 +142,7 @@ def scorecard(results: dict) -> str:
     # Dimension 1: Reasoning Integrity
     lines.append("\n[1] Reasoning Integrity")
     lines.append(f"  Grid accuracy:          {results.get('grid_accuracy', 0):.4f}  (gate: >= 0.75)")
-    lines.append(f"  Relation prediction:    {results.get('relation_prediction', 0):.4f}  (gate: >= 0.85)")
+    lines.append(f"  Relation prediction:    {results.get('relation_prediction', 0):.4f}  (gate: error < 0.50)")
     lines.append(f"  Attractor separation:   {results.get('attractor_separation', 0):.4f}  (higher=better)")
 
     # Dimension 2: Memory & Compression
