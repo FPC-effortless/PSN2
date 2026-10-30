@@ -1,0 +1,25 @@
+name: CPU runtime bundle for architecture evaluation
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/evaluation-runtime.yml'
+permissions:
+  contents: read
+jobs:
+  cpu-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect official CPU dependency wheels
+        run: |
+          python -m pip download 'torch==2.15.0+cpu' --index-url https://download.pytorch.org/whl/cpu --dest wheelhouse
+          cd wheelhouse
+          sha256sum *.whl > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python312-cpu-runtime
+          path: wheelhouse/
+          retention-days: 1
