@@ -18,7 +18,8 @@ from torch.utils.data import Dataset
 
 # Simple deterministic token hash → vocab index
 def _tok_hash(s: str, vocab: int) -> int:
-    return (hash(s) & 0x7FFFFFFF) % vocab
+    from psn2.token_ids import stable_token_id
+    return stable_token_id(s, vocab)
 
 
 class ToMDataset(Dataset):
