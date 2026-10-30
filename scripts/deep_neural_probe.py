@@ -19,7 +19,7 @@ def spatial():
  m=create()
  with torch.no_grad():out=m.forward_batch(batch())
  pred=out['pred'];difference=float((pred[0,0,1]-pred[0,1,0]).abs().max())
- return {'status':'FAIL' if difference<1e-7 else 'MEASURED','same_color_logit_max_difference':difference,'finite':bool(torch.isfinite(pred).all()),'scope':'Same-color cells need different targets in a reflection; this is a constructed structural diagnostic.'}
+ return {'status':'FAIL' if difference<1e-7 else 'PASS','same_color_logit_max_difference':difference,'finite':bool(torch.isfinite(pred).all()),'scope':'Structural distinguishability only; no trained reflection or real-data task success is measured.'}
 def gradients():
  m=create();captured=[]
  handle=m.grid_decoder.register_forward_hook(lambda module,args,out:captured.append(out))

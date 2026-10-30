@@ -32,8 +32,9 @@ from .losses import PSN2LossFamily, active_losses
 
 
 class SpatialGridDecoder(nn.Module):
+    VERSION = 2
     """
-    Fix #8: per-cell spatial predictions.
+    Version2: local convolution and coordinate-aware per-cell predictions.
     Takes a global shape vector [B,D], the per-cell embeddings [B,H,W,D],
     and the raw input grid [B,H,W] to produce per-cell logits [B,H,W,vocab].
     The input grid is used directly so unmasked cells can be copied exactly.
@@ -41,6 +42,14 @@ class SpatialGridDecoder(nn.Module):
     def __init__(self, dim: int, vocab: int):
         super().__init__()
         self.vocab = vocab
+        # Native spatial features: local neighborhoods plus explicit coordinates.
+        # No attention, Transformer or TAC block. Version2 is a new graph, so
+        # legacy model states cannot silently enter the full-checkpoint loader.
+        self.spatial = nn.Sequential(
+            nn.Conv2d(dim + 2, dim, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(dim, dim, kernel_size=3, padding=1),
+        )
         # Fuse global context with local cell embedding
         self.fuse = nn.Linear(dim * 2, dim)
         self.out  = nn.Linear(dim, vocab)
@@ -55,7 +64,13 @@ class SpatialGridDecoder(nn.Module):
         """
         B, H, W, D = cell_emb.shape
         ctx = shape.unsqueeze(1).unsqueeze(1).expand(B, H, W, D)  # [B,H,W,D]
-        fused = torch.cat([ctx, cell_emb], dim=-1)                 # [B,H,W,2D]
+        rows = torch.linspace(-1.0, 1.0, H, device=cell_emb.device, dtype=cell_emb.dtype) if H > 1 else torch.zeros(1, device=cell_emb.device, dtype=cell_emb.dtype)
+        cols = torch.linspace(-1.0, 1.0, W, device=cell_emb.device, dtype=cell_emb.dtype) if W > 1 else torch.zeros(1, device=cell_emb.device, dtype=cell_emb.dtype)
+        row_grid = rows.view(1, 1, H, 1).expand(B, 1, H, W)
+        col_grid = cols.view(1, 1, 1, W).expand(B, 1, H, W)
+        spatial_input = torch.cat([cell_emb.permute(0, 3, 1, 2), row_grid, col_grid], dim=1)
+        spatial = self.spatial(spatial_input).permute(0, 2, 3, 1)
+        fused = torch.cat([ctx, cell_emb + spatial], dim=-1)                 # [B,H,W,2D]
         logits = self.out(F.relu(self.fuse(fused)))                # [B,H,W,vocab]
 
         # Residual copy bias: boost the logit for the input token at each cell.
@@ -987,6 +1002,7 @@ class PSN2System(nn.Module):
         """GAP 3a: include ERS state in serialization."""
         return {
             "token_id_version": TOKEN_ID_VERSION,
+            "spatial_decoder_version": SpatialGridDecoder.VERSION,
             "model": self.state_dict(),
             "attractors": self.attractors.state_dict(),
             "attractor_utility": self.attractors.utility,
@@ -1008,6 +1024,8 @@ class PSN2System(nn.Module):
                 "Checkpoint token identity version is missing or incompatible. "
                 "Replay legacy checkpoints with their original source/encoder."
             )
+        if state.get("spatial_decoder_version") != SpatialGridDecoder.VERSION:
+            raise ValueError("Spatial decoder checkpoint version is missing or incompatible")
         self.load_state_dict(state["model"], strict=False)
         # Support both old list format and new dict format for attractors
         attr_state = state.get("attractors", {})

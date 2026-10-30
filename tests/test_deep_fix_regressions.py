@@ -29,6 +29,17 @@ class InputBoundaryRegression(unittest.TestCase):
   scope={'TOKEN_ID_VERSION':'blake2b-psn2-id-v2'}
   exec(compile(ast.Module(body=[fn],type_ignores=[]),'<original-load-guard>','exec'),scope)
   with self.assertRaises(ValueError):scope['load_state_dict_full'](None,{})
+ def test_spatial_path_if_torch_available(self):
+  if importlib.util.find_spec('torch') is None:self.skipTest('PyTorch runtime unavailable')
+  sys.path.insert(0,str(ROOT))
+  import torch
+  from psn2.core import PSN2System
+  torch.manual_seed(101)
+  model=PSN2System(dim=32,max_nodes=16,grid_vocab=10,rel_vocab=5).eval()
+  grid=torch.tensor([[[1,0],[0,0]]])
+  embeddings=model.grid_encoder(grid)
+  logits=model.grid_decoder(torch.zeros(1,32),embeddings,input_grid=grid)
+  self.assertGreater(float((logits[0,0,1]-logits[0,1,0]).abs().max().detach()),1e-7)
  def test_real_dataset_guard_if_torch_available(self):
   if importlib.util.find_spec('torch') is None:self.skipTest('PyTorch runtime unavailable')
   sys.path.insert(0,str(ROOT))
