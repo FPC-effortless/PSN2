@@ -96,7 +96,7 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
     tomi_train  = os.path.join(data_dir, "d3_tomi", "train.jsonl")
     wiki_train  = os.path.join(data_dir, "d4_wikitext", "train.jsonl")
     gsm_train   = os.path.join(data_dir, "d5_gsm8k", "train.jsonl")
-    bbh_test    = os.path.join(data_dir, "d6_bbh", "test.jsonl")
+    bbh_train   = os.path.join(data_dir, "d6_bbh", "train.jsonl")
 
     max_wiki = cfg.get("max_wikitext_samples", 50000)
     max_arc2 = cfg.get("max_arc2_samples", None)
@@ -193,8 +193,8 @@ def build_loaders(cfg: dict, stage: str, batch_size: int, n_gpus: int = 1):
             all_datasets.append(GSM8KDataset(gsm_train, vocab_size=rel_vocab))
         if _exists(tom_train):
             all_datasets.append(ToMDataset(tom_train, vocab_size=rel_vocab))
-        if _exists(bbh_test):
-            all_datasets.append(BBHDataset(bbh_test, vocab_size=rel_vocab))
+        if _exists(bbh_train):
+            all_datasets.append(BBHDataset(bbh_train, vocab_size=rel_vocab))
         if not all_datasets:
             all_datasets = [arc_synthetic(), graph_synthetic()]
 
