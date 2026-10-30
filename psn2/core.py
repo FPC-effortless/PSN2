@@ -17,6 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
 
+from .token_ids import TOKEN_ID_VERSION
 from .vsa import bundle, normalize, cosine
 from .sce import SpikeGate
 from .node import NodeBank
@@ -985,6 +986,7 @@ class PSN2System(nn.Module):
     def state_dict_full(self) -> dict:
         """GAP 3a: include ERS state in serialization."""
         return {
+            "token_id_version": TOKEN_ID_VERSION,
             "model": self.state_dict(),
             "attractors": self.attractors.state_dict(),
             "attractor_utility": self.attractors.utility,
@@ -1001,6 +1003,11 @@ class PSN2System(nn.Module):
         }
 
     def load_state_dict_full(self, state: dict):
+        if state.get("token_id_version") != TOKEN_ID_VERSION:
+            raise ValueError(
+                "Checkpoint token identity version is missing or incompatible. "
+                "Replay legacy checkpoints with their original source/encoder."
+            )
         self.load_state_dict(state["model"], strict=False)
         # Support both old list format and new dict format for attractors
         attr_state = state.get("attractors", {})

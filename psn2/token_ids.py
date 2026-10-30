@@ -5,6 +5,8 @@ encoding and cannot be evaluated interchangeably with this mapping.
 """
 import hashlib
 
+TOKEN_ID_VERSION = "blake2b-psn2-id-v2"
+
 def stable_token_id(text: str, vocab: int) -> int:
     if type(vocab) is not int or vocab < 1:
         raise ValueError("vocab must be positive")
