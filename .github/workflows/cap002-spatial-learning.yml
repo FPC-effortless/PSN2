@@ -1,0 +1,62 @@
+name: CAP002 bounded spatial learning
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - scripts/cap002_spatial_learning.py
+      - .github/workflows/cap002-spatial-learning.yml
+permissions:
+  contents: read
+concurrency:
+  group: cap002-spatial-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+    steps:
+      # Existing orphan gitlink makes checkout's recursive auth cleanup fail.
+      # Remove only the main repository's read-only header before running code;
+      # never expose it to the experiment or preserve it in artifacts.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Remove checkout credential before experiment
+        run: |
+          git config --local --unset-all http.https://github.com/.extraheader || test "$?" = 5
+          if git config --local --get-regexp 'http\..*\.extraheader'; then exit 1; fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pinned CPU dependencies
+        run: |
+          python -m pip install torch==2.10.0+cpu --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install numpy==2.2.6
+      - name: Syntax and existing boundary regressions
+        run: |
+          python -m py_compile scripts/cap002_spatial_learning.py
+          python tests/test_deep_fix_regressions.py
+      - name: Eighteen registered actual-source learning fits
+        run: |
+          set -o pipefail
+          mkdir -p ci-artifacts/cap002
+          python -u scripts/cap002_spatial_learning.py ci-artifacts/cap002 2>&1 | tee ci-artifacts/cap002/RUN.log
+      - name: Preserve source and package receipts
+        if: always()
+        run: |
+          mkdir -p ci-artifacts/cap002
+          git rev-parse HEAD > ci-artifacts/cap002/COMMIT.txt
+          python -m pip freeze > ci-artifacts/cap002/PACKAGES.txt
+          cp scripts/cap002_spatial_learning.py ci-artifacts/cap002/
+          git archive HEAD psn2 train.py scripts/cap002_spatial_learning.py tests/test_deep_fix_regressions.py AGENTS.md .agents/skills/fpc-universal/SKILL.md > ci-artifacts/cap002/source.tar
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cap002-spatial-learning-${{ github.run_attempt }}
+          path: ci-artifacts/cap002/
+          if-no-files-found: error
+          retention-days: 90
