@@ -1,0 +1,46 @@
+name: CAP003 public runtime recovery
+on:
+  push:
+    branches: [research/cap003-public-source-export-20261031]
+    paths: [.github/workflows/cap003-public-runtime-recovery.yml]
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch pinned pure-Python dependency
+        run: |
+          mkdir -p "$RUNNER_TEMP/cap003-runtime"
+          python -m pip download --no-deps --only-binary=:all: xlrd==2.0.1 -d "$RUNNER_TEMP/cap003-runtime"
+      - name: Probe existing publicly downloadable package without credentials
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, urllib.request, zipfile
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'cap003-runtime'
+          receipt={'purpose':'Public transport probe only. No credentials or private GitHub source are supplied. No downloaded source code is executed.'}
+          url='https://www.kaggle.com/api/v1/datasets/download/jeffwilliamsr/usef-x-training-package'
+          try:
+              req=urllib.request.Request(url,headers={'User-Agent':'CAP003-public-source-recovery'})
+              with urllib.request.urlopen(req,timeout=45) as response:
+                  data=response.read(25*1024*1024+1)
+                  receipt['http_status']=response.status
+              if len(data)>25*1024*1024: raise RuntimeError('Public package exceeds transport limit')
+              p=dest/'public-usef-x-training-package.zip';p.write_bytes(data)
+              if not zipfile.is_zipfile(p):
+                  p.unlink();raise RuntimeError('Public response is not a ZIP archive')
+              receipt.update({'status':'PUBLIC_UNAUTHENTICATED_DOWNLOAD','size':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+          except Exception as exc:
+              receipt.update({'status':'PUBLIC_PACKAGE_UNAVAILABLE','error_type':type(exc).__name__})
+          receipt['files']=[{'name':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'size':p.stat().st_size} for p in dest.iterdir() if p.is_file()]
+          (dest/'TRANSPORT.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cap003-public-runtime
+          path: ${{ runner.temp }}/cap003-runtime/*
+          if-no-files-found: error
+          retention-days: 7
