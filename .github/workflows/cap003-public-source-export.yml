@@ -1,0 +1,57 @@
+name: CAP003 public source export
+on:
+  push:
+    branches: [research/cap003-public-source-export-20261031]
+    paths: [.github/workflows/cap003-public-source-export.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Export only verified public repositories without executing their code
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/cap003-public-sources"
+          cd "$RUNNER_TEMP/cap003-public-sources"
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess, urllib.request
+          snapshots = [
+              ('PSN2', '49ab9d901db449347154620e459995d300866c77'),
+              ('Neural-Field-Dynamics', '66bb0e86c20dae306809b4c992f944abd5f1e7bc'),
+              ('Nsat', 'research/deep-fix001-correctness-2026-10-30'),
+          ]
+          receipts = []
+          for name, ref in snapshots:
+              repo = 'FPC-effortless/' + name
+              req = urllib.request.Request('https://api.github.com/repos/' + repo, headers={'User-Agent':'CAP003-source-export'})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  metadata = json.load(response)
+              if metadata.get('private') is not False or metadata.get('visibility') != 'public':
+                  raise RuntimeError('Refusing to export any repository not explicitly public: ' + repo)
+              path = pathlib.Path(name)
+              path.mkdir()
+              subprocess.run(['git','init','-q',str(path)],check=True)
+              subprocess.run(['git','-C',str(path),'fetch','--depth=1','https://github.com/' + repo + '.git',ref],check=True)
+              commit = subprocess.check_output(['git','-C',str(path),'rev-parse','FETCH_HEAD'],text=True).strip()
+              if len(ref) == 40 and commit != ref:
+                  raise RuntimeError('Commit mismatch')
+              archive = pathlib.Path(name + '.tar')
+              subprocess.run(['git','-C',str(path),'archive','--format=tar','--output='+str(archive.resolve()),commit],check=True)
+              tree = subprocess.check_output(['git','-C',str(path),'ls-tree','-r','-z',commit])
+              pathlib.Path(name + '.git-tree.bin').write_bytes(tree)
+              receipts.append({'repository':repo,'requested_ref':ref,'commit':commit,'archive':archive.name,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'public':True})
+          pathlib.Path('MANIFEST.json').write_text(json.dumps({'purpose':'Source transport only; no capability measurement, training, private source or repository code execution','snapshots':receipts},indent=2)+'\n')
+          PY
+      - name: Preserve source archives and exact tree receipts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cap003-public-source-snapshots
+          path: |
+            ${{ runner.temp }}/cap003-public-sources/*.tar
+            ${{ runner.temp }}/cap003-public-sources/*.bin
+            ${{ runner.temp }}/cap003-public-sources/MANIFEST.json
+          if-no-files-found: error
+          retention-days: 7
