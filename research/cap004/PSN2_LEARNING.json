@@ -1,0 +1,110 @@
+[
+  {
+    "seed": 101,
+    "arm": "integrated",
+    "updates": 480,
+    "parameters": 81082,
+    "initial": {
+      "masked_loss": 2.870715789794922,
+      "masked_pixel_accuracy": 0.0,
+      "complete_grid_accuracy": 0.0
+    },
+    "final": {
+      "masked_loss": 1.773497314453125,
+      "masked_pixel_accuracy": 0.376875,
+      "complete_grid_accuracy": 0.0
+    },
+    "seconds": 9.655937407000238,
+    "qualification": "previously exposed digit dev; exploratory D1 only; new mask pattern"
+  },
+  {
+    "seed": 101,
+    "arm": "decoder_only",
+    "updates": 480,
+    "parameters": 48155,
+    "initial": {
+      "masked_loss": 2.8650929514567056,
+      "masked_pixel_accuracy": 0.0,
+      "complete_grid_accuracy": 0.0
+    },
+    "final": {
+      "masked_loss": 1.767697556813558,
+      "masked_pixel_accuracy": 0.37604166666666666,
+      "complete_grid_accuracy": 0.0
+    },
+    "seconds": 4.981991100999949,
+    "qualification": "previously exposed digit dev; exploratory D1 only; new mask pattern"
+  },
+  {
+    "seed": 202,
+    "arm": "integrated",
+    "updates": 480,
+    "parameters": 81082,
+    "initial": {
+      "masked_loss": 2.8768999862670896,
+      "masked_pixel_accuracy": 0.0,
+      "complete_grid_accuracy": 0.0
+    },
+    "final": {
+      "masked_loss": 1.779427630106608,
+      "masked_pixel_accuracy": 0.37354166666666666,
+      "complete_grid_accuracy": 0.0
+    },
+    "seconds": 7.148132037998948,
+    "qualification": "previously exposed digit dev; exploratory D1 only; new mask pattern"
+  },
+  {
+    "seed": 202,
+    "arm": "decoder_only",
+    "updates": 480,
+    "parameters": 48155,
+    "initial": {
+      "masked_loss": 2.888983980814616,
+      "masked_pixel_accuracy": 0.0,
+      "complete_grid_accuracy": 0.0
+    },
+    "final": {
+      "masked_loss": 1.7664932505289714,
+      "masked_pixel_accuracy": 0.37395833333333334,
+      "complete_grid_accuracy": 0.0
+    },
+    "seconds": 5.412301069998648,
+    "qualification": "previously exposed digit dev; exploratory D1 only; new mask pattern"
+  },
+  {
+    "seed": 303,
+    "arm": "integrated",
+    "updates": 480,
+    "parameters": 81082,
+    "initial": {
+      "masked_loss": 2.9762406667073567,
+      "masked_pixel_accuracy": 0.0,
+      "complete_grid_accuracy": 0.0
+    },
+    "final": {
+      "masked_loss": 1.7456264940897623,
+      "masked_pixel_accuracy": 0.3852083333333333,
+      "complete_grid_accuracy": 0.0
+    },
+    "seconds": 7.234796798000389,
+    "qualification": "previously exposed digit dev; exploratory D1 only; new mask pattern"
+  },
+  {
+    "seed": 303,
+    "arm": "decoder_only",
+    "updates": 480,
+    "parameters": 48155,
+    "initial": {
+      "masked_loss": 3.0556316630045575,
+      "masked_pixel_accuracy": 0.0,
+      "complete_grid_accuracy": 0.0
+    },
+    "final": {
+      "masked_loss": 1.7513774299621583,
+      "masked_pixel_accuracy": 0.378125,
+      "complete_grid_accuracy": 0.0
+    },
+    "seconds": 5.1128873670004396,
+    "qualification": "previously exposed digit dev; exploratory D1 only; new mask pattern"
+  }
+]

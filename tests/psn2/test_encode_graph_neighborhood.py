@@ -366,6 +366,9 @@ def test_gradient_flows_to_neighborhood_attn():
     model = make_model(dim=64)
     entities, relations, masked_idx = make_graph_inputs(B=4, N_e=6, N_r=5)
 
+    # A routing gradient requires a real choice between distinct relevant edges.
+    relations[0,0] = torch.tensor([0,0,1])
+    relations[0,1] = torch.tensor([0,1,2])
     out = model.encode_graph_neighborhood(entities, relations, masked_idx)
     loss = out.sum()
     loss.backward()
